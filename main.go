@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"io/fs"
 	"net/http"
 	"os"
 
+	"github.com/Richard87/goallery/frontend"
+	_ "github.com/Richard87/goallery/frontend"
 	"github.com/Richard87/goallery/pkg/db"
 	"github.com/Richard87/goallery/pkg/interfaces"
+	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -42,11 +46,13 @@ func main() {
 		Fs: fileSystem,
 	}
 
-	http.HandleFunc("/api", app.api(ctx))
+	router := mux.NewRouter().StrictSlash(true)
+	initializeFrontend(router)
+	router.Handle("/api", app.api(ctx))
 
 	log.Info().Str("server", "http://localhost:3000").Msg("Listening")
 
-	handler := http.ListenAndServe(":3000", nil)
+	handler := http.ListenAndServe(":3000", router)
 	err = handler
 	if err != nil {
 		log.Error().Err(err).Msg("Server closed")
@@ -74,4 +80,9 @@ func (a *App) api(ctx context.Context) http.HandlerFunc {
 		w.WriteHeader(200)
 		_, _ = w.Write(data)
 	}
+}
+
+func initializeFrontend(router *mux.Router) {
+	frontend := http.FileServer(http.FS(frontend.FS()))
+	router.PathPrefix("/").Handler(frontend)
 }
