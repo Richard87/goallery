@@ -10,13 +10,14 @@ import (
 	"image/png"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Richard87/goallery/pkg/interfaces"
-	"github.com/Richard87/goallery/pkg/model"
+	"github.com/Richard87/goallery/generated/models"
+	"github.com/Richard87/goallery/internal/pointers"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/nfnt/resize"
 	"github.com/rs/zerolog/log"
@@ -24,46 +25,62 @@ import (
 
 type InMemoryDb struct {
 	rootDir string
-	dir     fs.FS
-	images  map[string]model.Image
+	fs      fs.FS
+	images  map[string]Image
+}
+type Image struct {
+	models.Image
+	path string
 }
 
 var ErrImageNotFound = fmt.Errorf("image not found")
 
-func (db *InMemoryDb) GetImage(ctx context.Context, id string) (*model.Image, error) {
+func (db *InMemoryDb) GetImage(ctx context.Context, id string) (*models.Image, error) {
+
 	i, ok := db.images[id]
 	if !ok {
 		return nil, ErrImageNotFound
 	}
 
-	return &i, nil
+	return &i.Image, nil
 }
 
-func (db *InMemoryDb) ListImages(ctx context.Context) ([]*model.Image, error) {
-	var res []*model.Image
+func (db *InMemoryDb) ListImages(_ context.Context) ([]*models.Image, error) {
+	res := make([]*models.Image, len(db.images))
 
+	x := 0
 	for _, v := range db.images {
-		res = append(res, &v)
+		res[x] = &v.Image
+		x++
 	}
 
 	return res, nil
 }
 
-func (db *InMemoryDb) StoreImage(ctx context.Context, image fs.File) (*model.Image, error) {
+func (db *InMemoryDb) StoreImage(ctx context.Context, image fs.File) (*models.Image, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func NewInMemoryDb(ctx context.Context, rootDir string) (interfaces.Db, error) {
+func NewInMemoryDb(ctx context.Context, rootDir string) (*InMemoryDb, error) {
+	cwd, _ := os.Getwd()
 	db := &InMemoryDb{
-		rootDir: rootDir,
-		dir:     os.DirFS(rootDir),
-		images:  make(map[string]model.Image),
+		rootDir: path.Join(cwd, rootDir),
+		fs:      os.DirFS(rootDir),
+		images:  make(map[string]Image),
 	}
 
 	start := time.Now()
-	log.Ctx(ctx).Info().Str("path", rootDir).Msg("Scanning directory...")
-	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
+
+	log.Ctx(ctx).Info().Str("path", db.rootDir).Msg("Scanning directory...")
+
+	err := filepath.Walk(db.rootDir, func(path string, info os.FileInfo, err error) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		if err != nil {
 			return err
 		}
@@ -72,22 +89,25 @@ func NewInMemoryDb(ctx context.Context, rootDir string) (interfaces.Db, error) {
 			return nil
 		}
 
-		filepath := filepath.Join(rootDir, info.Name())
-		mtype, err := mimetype.DetectFile(filepath)
+		localPath := strings.TrimPrefix(strings.Replace(path, db.rootDir, "", 1), "/")
+
+		mtype, err := mimetype.DetectFile(path)
 		if err != nil {
-			log.Ctx(ctx).Warn().Str("filepath", filepath).Err(err).Msg("Unable to get Mime from file")
+			log.Ctx(ctx).Warn().Str("filepath", localPath).Err(err).Msg("Unable to get Mime from file")
 			return nil
 		}
-		if !strings.HasPrefix(mtype.String(), "image/") {
-			log.Ctx(ctx).Debug().Str("filepath", path).Str("mime", mtype.String()).Int64("size", info.Size()).Msg("Skipping file")
+		mime := mtype.String()
+		fileSize := info.Size()
+		if !strings.HasPrefix(mime, "image/") {
+			log.Ctx(ctx).Debug().Str("filepath", localPath).Str("mime", mime).Int64("size", fileSize).Msg("Skipping file")
 
 			return nil
 		}
-		log.Ctx(ctx).Debug().Str("filepath", path).Str("mime", mtype.String()).Int64("size", info.Size()).Msg("Found image")
+		log.Ctx(ctx).Debug().Str("filepath", localPath).Str("mime", mime).Int64("size", fileSize).Msg("Found image")
 
-		f, err := db.dir.Open(info.Name())
+		f, err := db.fs.Open(localPath)
 		if err != nil {
-			log.Ctx(ctx).Warn().Str("filepath", filepath).Err(err).Msg("Unable to load file")
+			log.Ctx(ctx).Warn().Str("filepath", localPath).Err(err).Msg("Unable to load file")
 			return nil
 		}
 		defer f.Close()
@@ -95,8 +115,8 @@ func NewInMemoryDb(ctx context.Context, rootDir string) (interfaces.Db, error) {
 		i, _, err := image.Decode(f)
 		if err != nil {
 			log.Ctx(ctx).Warn().
-				Str("filepath", filepath).
-				Str("mime", mtype.String()).
+				Str("filepath", localPath).
+				Str("mime", mime).
 				Err(err).
 				Msg("Unable to decode file")
 			return nil
@@ -107,14 +127,19 @@ func NewInMemoryDb(ctx context.Context, rootDir string) (interfaces.Db, error) {
 		err = png.Encode(&buf, newImage)
 
 		id := strconv.Itoa(len(db.images) + 1)
-		db.images[id] = model.Image{
-			Id:               id,
-			OriginalFilename: info.Name(),
-			Path:             filepath,
-			Mime:             mtype.String(),
-			Rect:             i.Bounds().Max,
-			Size:             info.Size(),
-			Placeholder:      "data:image/png;base64," + base64.RawStdEncoding.EncodeToString(buf.Bytes()),
+		db.images[id] = Image{
+			Image: models.Image{
+				ID:       &id,
+				Filename: pointers.String(info.Name()),
+				Mime:     &mime,
+				Width:    pointers.Int64(int64(i.Bounds().Max.X)),
+				Height:   pointers.Int64(int64(i.Bounds().Max.Y)),
+				Size:     &fileSize,
+				Features: &models.ImageFeature{
+					PluginBlurryimage: "data:image/png;base64," + base64.RawStdEncoding.EncodeToString(buf.Bytes()),
+				},
+			},
+			path: localPath,
 		}
 		return nil
 	})
@@ -133,5 +158,3 @@ func NewInMemoryDb(ctx context.Context, rootDir string) (interfaces.Db, error) {
 	}
 	return db, nil
 }
-
-var _ interfaces.Db = &InMemoryDb{}

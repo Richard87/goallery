@@ -2,87 +2,123 @@ package main
 
 import (
 	"context"
-	_ "embed"
-	"encoding/json"
-	"io/fs"
-	"net/http"
 	"os"
+	"os/signal"
 
-	"github.com/Richard87/goallery/frontend"
-	_ "github.com/Richard87/goallery/frontend"
+	"github.com/Richard87/goallery/generated/models"
+	"github.com/Richard87/goallery/generated/restapi"
+	"github.com/Richard87/goallery/generated/restapi/gaollery"
+	"github.com/Richard87/goallery/generated/restapi/gaollery/images"
+	"github.com/Richard87/goallery/internal/pointers"
 	"github.com/Richard87/goallery/pkg/db"
-	"github.com/Richard87/goallery/pkg/interfaces"
-	"github.com/gorilla/mux"
+	"github.com/go-openapi/loads"
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-type App struct {
-	Db interfaces.Db
-	Fs fs.FS
+type AppConfig struct {
+	Photos   string `long:"photos-folder" description:"Directory to photos" default:"../photos" env:"PHOTOS_FOLDER"`
+	LogLevel string `long:"log-level" description:"Log level" default:"info" env:"LOG_LEVEL"`
 }
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	defer func() {
+		signal.Stop(c)
+		cancel()
+	}()
+	go func() {
+		select {
+		case <-c:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.DurationFieldInteger = true
-	fsPath := "/Users/richard/Pictures/Darktable/20210720_1" // os.Getenv("GALLERY_PATH")
+	zerolog.LevelFieldName = "severity"
 	pretty := os.Getenv("PRETTY") == "1"
 	if pretty {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 	ctx = log.Logger.WithContext(ctx)
 
-	log.Info().Msg("Starting Goallery")
-	db, err := db.NewInMemoryDb(ctx, fsPath)
+	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load swagger spec")
+	}
+	config := &AppConfig{}
+
+	api := gaollery.NewGoalleryAPI(swaggerSpec)
+	api.Logger = log.Printf
+	server := restapi.NewServer(api)
+	defer server.Shutdown()
+
+	parser := flags.NewParser(config, flags.Default)
+	parser.ShortDescription = "Goallery"
+
+	_, err = parser.AddGroup("Server", "Server", server)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to parse server config")
+	}
+
+	if _, err := parser.Parse(); err != nil {
+		code := 1
+		if fe, ok := err.(*flags.Error); ok {
+			if fe.Type == flags.ErrHelp {
+				code = 0
+			}
+		}
+		os.Exit(code)
+	}
+
+	log.Info().Msg("Setting log level to " + config.LogLevel)
+	level, err := zerolog.ParseLevel(config.LogLevel)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse log-level")
+	}
+	zerolog.SetGlobalLevel(level)
+
+	db, err := db.NewInMemoryDb(ctx, config.Photos)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load InMemoryDb")
-		os.Exit(1)
 	}
 
-	fileSystem := os.DirFS(fsPath)
-	app := App{
-		Db: db,
-		Fs: fileSystem,
-	}
+	api.ImagesGetImagesHandler = images.GetImagesHandlerFunc(func(request images.GetImagesParams) middleware.Responder {
 
-	router := mux.NewRouter().StrictSlash(true)
-	initializeFrontend(router)
-	router.Handle("/api", app.api(ctx))
-
-	log.Info().Str("server", "http://localhost:3000").Msg("Listening")
-
-	handler := http.ListenAndServe(":3000", router)
-	err = handler
-	if err != nil {
-		log.Error().Err(err).Msg("Server closed")
-		os.Exit(1)
-	}
-}
-
-func (a *App) api(ctx context.Context) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log.Ctx(ctx).Debug().Str("path", r.URL.Path).Msg("Got request")
-
-		imgs, err := a.Db.ListImages(ctx)
+		list, err := db.ListImages(request.HTTPRequest.Context())
 		if err != nil {
-			log.Ctx(ctx).Error().Err(err).Msg("Unable to fetch images!")
+			images.NewGetImagesInternalServerError().WithPayload(&models.ProblemDetails{
+				Detail: err.Error(),
+				Status: pointers.Int32(500),
+				Title:  pointers.String("Internal Server Error"),
+			})
 		}
 
-		data, err := json.MarshalIndent(imgs, "", "  ")
+		return images.NewGetImagesOK().WithPayload(list)
+	})
+	api.ImagesGetImageByIDHandler = images.GetImageByIDHandlerFunc(func(request images.GetImageByIDParams) middleware.Responder {
+		image, err := db.GetImage(request.HTTPRequest.Context(), request.ID)
 		if err != nil {
-			w.WriteHeader(500)
-			log.Ctx(ctx).Error().Err(err).Msg("Unable to marshall images!")
-			_, _ = w.Write([]byte("Unable to marshall data"))
-			return
+			images.NewGetImagesInternalServerError().WithPayload(&models.ProblemDetails{
+				Detail: err.Error(),
+				Status: pointers.Int32(500),
+				Title:  pointers.String("Internal Server Error"),
+			})
 		}
 
-		w.WriteHeader(200)
-		_, _ = w.Write(data)
-	}
-}
+		return images.NewGetImageByIDOK().WithPayload(image)
+	})
 
-func initializeFrontend(router *mux.Router) {
-	frontend := http.FileServer(http.FS(frontend.FS()))
-	router.PathPrefix("/").Handler(frontend)
+	server.ConfigureAPI()
+
+	if err := server.Serve(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to start server")
+	}
+
 }

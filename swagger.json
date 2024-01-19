@@ -1,0 +1,192 @@
+{
+  "swagger": "2.0",
+  "schemes": [
+    "http"
+  ],
+  "info": {
+    "description": "This is the API Specification for Goallery.",
+    "title": "Goallery",
+    "version": "1.23.0"
+  },
+  "basePath": "/api/v1",
+  "paths": {
+    "/images": {
+      "get": {
+        "tags": [
+          "images"
+        ],
+        "summary": "Get all images",
+        "description": "Get all images",
+        "operationId": "getImages",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Image"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          }
+        }
+      }
+    },
+    "/images/{id}": {
+      "get": {
+        "tags": [
+          "images"
+        ],
+        "summary": "Get image by id",
+        "description": "Get image by id",
+        "operationId": "getImageById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Image id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Image"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ImageList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Image"
+      }
+    },
+    "Image": {
+      "type": "object",
+      "required": [
+        "id",
+        "filename",
+        "description",
+        "mime",
+        "tags",
+        "created",
+        "updated",
+        "size",
+        "width",
+        "height",
+        "features"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "mime": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "width": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "height": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "features": {
+          "type": "object",
+          "$ref": "#/definitions/ImageFeature"
+        }
+      }
+    },
+    "ImageFeature": {
+      "type": "object",
+      "properties": {
+        "plugin.blurryimage": {
+          "type": "string"
+        }
+      }
+    },
+    "ProblemDetails": {
+      "type": "object",
+      "required": [
+        "status",
+        "title"
+      ],
+      "properties": {
+        "status": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "title": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "security": [
+    {
+      "bearer": [],
+      "basic": []
+    }
+  ],
+  "securityDefinitions": {
+    "bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    },
+    "basic": {
+      "type": "basic"
+    }
+  }
+}
+
