@@ -1,9 +1,9 @@
 build: build-frontend build-backend
 
-build-frontend:
+build-frontend: generate-frontend
 	cd frontend && npm run build
 
-build-backend:
+build-backend: generate-backend
 	cd backend && go build .
 
 generate-backend:
