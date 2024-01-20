@@ -41,7 +41,7 @@ func main() {
 	err = restapi.New(ctx,
 		restapi.WithZerolog(log.Logger),
 		restapi.WithAuthApi(auth.New(db)),
-		restapi.WithImagesApi(images.New(db)),
+		restapi.WithImagesApi(images.New(db, log.Logger)),
 		restapi.WithHttpPort(config.Port),
 		WithTodoAuth(),
 	)

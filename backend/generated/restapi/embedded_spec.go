@@ -121,11 +121,40 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Image"
             }
-          },
-          "500": {
-            "description": "Internal Server Error",
+          }
+        }
+      }
+    },
+    "/images/{id}/download": {
+      "get": {
+        "security": [],
+        "description": "Download image by id",
+        "produces": [
+          "image/jpeg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+          "image/svg+xml"
+        ],
+        "tags": [
+          "images"
+        ],
+        "summary": "Download image by id",
+        "operationId": "downloadImageById",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Image id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ProblemDetails"
+              "type": "file"
             }
           }
         }
@@ -393,11 +422,40 @@ func init() {
             "schema": {
               "$ref": "#/definitions/Image"
             }
-          },
-          "500": {
-            "description": "Internal Server Error",
+          }
+        }
+      }
+    },
+    "/images/{id}/download": {
+      "get": {
+        "security": [],
+        "description": "Download image by id",
+        "produces": [
+          "image/gif",
+          "image/jpeg",
+          "image/png",
+          "image/svg+xml",
+          "image/webp"
+        ],
+        "tags": [
+          "images"
+        ],
+        "summary": "Download image by id",
+        "operationId": "downloadImageById",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Image id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ProblemDetails"
+              "type": "file"
             }
           }
         }

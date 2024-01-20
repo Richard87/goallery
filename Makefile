@@ -7,6 +7,8 @@ build-backend: generate-backend
 	#cd backend && go generate ./... #TODO
 	cd backend && go build .
 
+generate: generate-backend generate-frontend
+
 generate-backend:
 	jq empty swagger.json
 	rm -rf backend/generated/*

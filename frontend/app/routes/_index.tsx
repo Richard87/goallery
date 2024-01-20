@@ -29,6 +29,10 @@ export const loader = async () => {
 
 export default function Index() {
     const {photos} = useLoaderData<{photos: Image[]}>()
+    const mappedPhotos = photos.map((image) => ({
+        src: `http://localhost:8000/api/v1/images/${image.id}/download`,
+        ...image
+    }))
     const [index, setIndex] = useState(-1)
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.8" }}>
@@ -36,13 +40,14 @@ export default function Index() {
       <PhotoAlbum
           layout="rows"
           targetRowHeight={150}
-          photos={photos}
+          photos={mappedPhotos}
           onClick={({ index }) => setIndex(index)}
           renderPhoto={({ imageProps: {style, ...imageProps} , photo }) => (
               <img
+                  key={photo.id}
                   style={{
                     ...style,
-                    backgroundImage: `url('${photo.features["plugin.blurryimage"]}')`,
+                    backgroundImage: `url('${photo.features.pluginBlurryimage}')`,
                     backgroundRepeat: "no-repeat",
                     backgroundSize: "cover",
                     backgroundPosition: "center",
@@ -54,7 +59,7 @@ export default function Index() {
       />
 
       <Lightbox
-          slides={photos}
+          slides={mappedPhotos}
           open={index >= 0}
           index={index}
           close={() => setIndex(-1)}

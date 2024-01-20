@@ -44,8 +44,12 @@ func NewGoalleryAPI(spec *loads.Document) *GoalleryAPI {
 
 		JSONConsumer: runtime.JSONConsumer(),
 
+		BinProducer:  runtime.ByteStreamProducer(),
 		JSONProducer: runtime.JSONProducer(),
 
+		ImagesDownloadImageByIDHandler: images.DownloadImageByIDHandlerFunc(func(params images.DownloadImageByIDParams) middleware.Responder {
+			return middleware.NotImplemented("operation images.DownloadImageByID has not yet been implemented")
+		}),
 		ImagesGetImageByIDHandler: images.GetImageByIDHandlerFunc(func(params images.GetImageByIDParams, principal *models.User) middleware.Responder {
 			return middleware.NotImplemented("operation images.GetImageByID has not yet been implemented")
 		}),
@@ -94,6 +98,13 @@ type GoalleryAPI struct {
 	//   - application/json
 	JSONConsumer runtime.Consumer
 
+	// BinProducer registers a producer for the following mime types:
+	//   - image/gif
+	//   - image/jpeg
+	//   - image/png
+	//   - image/svg+xml
+	//   - image/webp
+	BinProducer runtime.Producer
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
@@ -105,6 +116,8 @@ type GoalleryAPI struct {
 	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
 	APIAuthorizer runtime.Authorizer
 
+	// ImagesDownloadImageByIDHandler sets the operation handler for the download image by Id operation
+	ImagesDownloadImageByIDHandler images.DownloadImageByIDHandler
 	// ImagesGetImageByIDHandler sets the operation handler for the get image by Id operation
 	ImagesGetImageByIDHandler images.GetImageByIDHandler
 	// ImagesGetImagesHandler sets the operation handler for the get images operation
@@ -184,6 +197,9 @@ func (o *GoalleryAPI) Validate() error {
 		unregistered = append(unregistered, "JSONConsumer")
 	}
 
+	if o.BinProducer == nil {
+		unregistered = append(unregistered, "BinProducer")
+	}
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
 	}
@@ -192,6 +208,9 @@ func (o *GoalleryAPI) Validate() error {
 		unregistered = append(unregistered, "AuthorizationAuth")
 	}
 
+	if o.ImagesDownloadImageByIDHandler == nil {
+		unregistered = append(unregistered, "images.DownloadImageByIDHandler")
+	}
 	if o.ImagesGetImageByIDHandler == nil {
 		unregistered = append(unregistered, "images.GetImageByIDHandler")
 	}
@@ -258,6 +277,16 @@ func (o *GoalleryAPI) ProducersFor(mediaTypes []string) map[string]runtime.Produ
 	result := make(map[string]runtime.Producer, len(mediaTypes))
 	for _, mt := range mediaTypes {
 		switch mt {
+		case "image/gif":
+			result["image/gif"] = o.BinProducer
+		case "image/jpeg":
+			result["image/jpeg"] = o.BinProducer
+		case "image/png":
+			result["image/png"] = o.BinProducer
+		case "image/svg+xml":
+			result["image/svg+xml"] = o.BinProducer
+		case "image/webp":
+			result["image/webp"] = o.BinProducer
 		case "application/json":
 			result["application/json"] = o.JSONProducer
 		}
@@ -300,6 +329,10 @@ func (o *GoalleryAPI) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/images/{id}/download"] = images.NewDownloadImageByID(o.context, o.ImagesDownloadImageByIDHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

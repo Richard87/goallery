@@ -70,7 +70,8 @@ func (db *InMemoryDb) ListImages(_ context.Context) ([]*models.Image, error) {
 
 	x := 0
 	for _, v := range db.images {
-		res[x] = &v.Image
+		v2 := v
+		res[x] = &v2.Image
 		x++
 	}
 
@@ -171,4 +172,10 @@ func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
 	if len(db.images) == 0 {
 		db.logger.Warn().Msg("No images found")
 	}
+}
+
+func (db *InMemoryDb) OpenImage(id string) (fs.File, error) {
+	i := db.images[id]
+
+	return db.fs.Open(i.path)
 }

@@ -36,6 +36,9 @@ type AuthAPI interface {
 
 /* ImagesAPI  */
 type ImagesAPI interface {
+	/* DownloadImageByID Download image by id */
+	DownloadImageByID(ctx context.Context, params images.DownloadImageByIDParams) middleware.Responder
+
 	/* GetImageByID Get image by id */
 	GetImageByID(ctx context.Context, params images.GetImageByIDParams) middleware.Responder
 
@@ -104,6 +107,7 @@ func HandlerAPI(c Config) (http.Handler, *gaollery.GoalleryAPI, error) {
 	} else {
 		api.JSONConsumer = runtime.JSONConsumer()
 	}
+	api.BinProducer = runtime.ByteStreamProducer()
 	api.JSONProducer = runtime.JSONProducer()
 	api.BearerAuth = func(token string) (*models.User, error) {
 		if c.AuthBearer == nil {
@@ -113,6 +117,10 @@ func HandlerAPI(c Config) (http.Handler, *gaollery.GoalleryAPI, error) {
 	}
 
 	api.APIAuthorizer = authorizer(c.Authorizer)
+	api.ImagesDownloadImageByIDHandler = images.DownloadImageByIDHandlerFunc(func(params images.DownloadImageByIDParams) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		return c.ImagesAPI.DownloadImageByID(ctx, params)
+	})
 	api.ImagesGetImageByIDHandler = images.GetImageByIDHandlerFunc(func(params images.GetImageByIDParams, principal *models.User) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)

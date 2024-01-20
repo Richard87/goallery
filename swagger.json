@@ -97,11 +97,34 @@
             "schema": {
               "$ref": "#/definitions/Image"
             }
-          },
-          "500": {
-            "description": "Internal Server Error",
+          }
+        }
+      }
+    },
+    "/images/{id}/download": {
+      "get": {
+        "tags": [
+          "images"
+        ],
+        "summary": "Download image by id",
+        "description": "Download image by id",
+        "operationId": "downloadImageById",
+        "produces": ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Image id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ProblemDetails"
+              "type": "file"
             }
           }
         }

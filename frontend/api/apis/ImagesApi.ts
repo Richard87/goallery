@@ -25,6 +25,10 @@ import {
     ProblemDetailsToJSON,
 } from '../models/index';
 
+export interface DownloadImageByIdRequest {
+    id: string;
+}
+
 export interface GetImageByIdRequest {
     id: string;
 }
@@ -33,6 +37,38 @@ export interface GetImageByIdRequest {
  * 
  */
 export class ImagesApi extends runtime.BaseAPI {
+
+    /**
+     * Download image by id
+     * Download image by id
+     */
+    async downloadImageByIdRaw(requestParameters: DownloadImageByIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Blob>> {
+        if (requestParameters.id === null || requestParameters.id === undefined) {
+            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling downloadImageById.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const response = await this.request({
+            path: `/images/{id}/download`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.BlobApiResponse(response);
+    }
+
+    /**
+     * Download image by id
+     * Download image by id
+     */
+    async downloadImageById(requestParameters: DownloadImageByIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Blob> {
+        const response = await this.downloadImageByIdRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Get image by id
