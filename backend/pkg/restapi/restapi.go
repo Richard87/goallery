@@ -63,7 +63,7 @@ func New(ctx context.Context, options ...OptionFunc) error {
 		}
 	}
 
-	h, api, err := restapi.HandlerAPI(config.Config)
+	_, api, err := restapi.HandlerAPI(config.Config)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrFailedToInitialiseRestApi, err)
 	}
@@ -73,7 +73,7 @@ func New(ctx context.Context, options ...OptionFunc) error {
 		return fmt.Errorf("%w: %w", ErrFailedToInitialiseRestApi, err)
 	}
 
-	h = api.Serve(config.Config.InnerMiddleware)
+	h := api.Serve(config.Config.InnerMiddleware)
 
 	srv := &http.Server{
 		Addr:    ":" + strconv.Itoa(config.Port),

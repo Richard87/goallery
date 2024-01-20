@@ -139,7 +139,10 @@ func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
 
 		var buf bytes.Buffer
 		newImage := resize.Resize(5, 5, i, resize.Lanczos3)
-		err = png.Encode(&buf, newImage)
+		if err = png.Encode(&buf, newImage); err != nil {
+			log.Ctx(ctx).Warn().Str("filepath", localPath).Err(err).Msg("Unable to encode file")
+			return nil
+		}
 
 		id := strconv.Itoa(len(db.images) + 1)
 		db.images[id] = Image{
@@ -165,7 +168,7 @@ func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
 
 	db.logger.Info().
 		Int("images", len(db.images)).
-		Dur("ellapsed", time.Now().Sub(start)).
+		Dur("ellapsed", time.Since(start)).
 		Str("path", db.rootDir).
 		Msg("InMemoryDb loaded")
 
