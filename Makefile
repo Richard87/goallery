@@ -4,6 +4,7 @@ build-frontend: generate-frontend
 	cd frontend && npm run build
 
 build-backend: generate-backend
+	#cd backend && go generate ./... #TODO
 	cd backend && go build .
 
 generate-backend:
