@@ -23,7 +23,7 @@ type AppConfig struct {
 }
 
 func main() {
-	ctx, cancel := createContext(time.Second * 15)
+	ctx, cancel := createContextWithGracefulShutdown(time.Second * 15)
 	defer cancel()
 
 	config, server, api := ParseConfig()
@@ -49,7 +49,7 @@ func main() {
 
 }
 
-func createContext(timeout time.Duration) (context.Context, context.CancelFunc) {
+func createContextWithGracefulShutdown(timeout time.Duration) (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
