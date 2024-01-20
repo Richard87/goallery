@@ -37,6 +37,7 @@ func init() {
   "paths": {
     "/auth/login": {
       "post": {
+        "security": [],
         "description": "Get JWT token",
         "tags": [
           "auth"
@@ -63,18 +64,6 @@ func init() {
           },
           "400": {
             "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ProblemDetails"
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {
-              "$ref": "#/definitions/ProblemDetails"
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
             "schema": {
               "$ref": "#/definitions/ProblemDetails"
             }
@@ -301,6 +290,7 @@ func init() {
   "paths": {
     "/auth/login": {
       "post": {
+        "security": [],
         "description": "Get JWT token",
         "tags": [
           "auth"
@@ -327,18 +317,6 @@ func init() {
           },
           "400": {
             "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/ProblemDetails"
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {
-              "$ref": "#/definitions/ProblemDetails"
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
             "schema": {
               "$ref": "#/definitions/ProblemDetails"
             }

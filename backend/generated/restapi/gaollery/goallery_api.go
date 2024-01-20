@@ -51,7 +51,7 @@ func NewGoalleryAPI(spec *loads.Document) *GoalleryAPI {
 		ImagesGetImagesHandler: images.GetImagesHandlerFunc(func(params images.GetImagesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation images.GetImages has not yet been implemented")
 		}),
-		AuthGetTokenHandler: auth.GetTokenHandlerFunc(func(params auth.GetTokenParams, principal interface{}) middleware.Responder {
+		AuthGetTokenHandler: auth.GetTokenHandlerFunc(func(params auth.GetTokenParams) middleware.Responder {
 			return middleware.NotImplemented("operation auth.GetToken has not yet been implemented")
 		}),
 

@@ -42,7 +42,7 @@
             "schema": {
               "$ref": "#/definitions/ProblemDetails"
             }
-          },
+          }
         }
       }
     },
