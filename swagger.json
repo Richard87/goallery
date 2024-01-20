@@ -15,6 +15,7 @@
         "tags": [
           "auth"
         ],
+        "security": [],
         "summary": "Get JWT token",
         "description": "Get JWT token",
         "operationId": "getToken",
@@ -42,18 +43,6 @@
               "$ref": "#/definitions/ProblemDetails"
             }
           },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {
-              "$ref": "#/definitions/ProblemDetails"
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "schema": {
-              "$ref": "#/definitions/ProblemDetails"
-            }
-          }
         }
       }
     },

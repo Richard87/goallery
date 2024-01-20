@@ -8,7 +8,7 @@ build-backend: generate-backend
 
 generate-backend:
 	rm -rf backend/generated/*
-	cd backend && swagger generate server --target=./generated --spec=../swagger.json --exclude-main --api-package=gaollery
+	cd backend && swagger generate server --template=stratoscale --target=./generated --spec=../swagger.json --exclude-main --api-package=gaollery
 	cd backend && go mod tidy
 
 generate-frontend:
@@ -16,7 +16,7 @@ generate-frontend:
 	cd frontend && echo "TODO!!!" && exit 1
 
 run-backend:
-	cd backend && PORT=5000 go run .
+	cd backend && PORT=5000 LOG_LEVEL=DEBUG go run .
 
 run-frontend:
 	cd frontend && npm run dev

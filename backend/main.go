@@ -6,11 +6,10 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/Richard87/goallery/generated/restapi"
-	"github.com/Richard87/goallery/generated/restapi/gaollery"
-	"github.com/Richard87/goallery/pkg/db"
-	"github.com/Richard87/goallery/pkg/handlers"
-	"github.com/go-openapi/loads"
+	"github.com/Richard87/goallery/pkg/handlers/auth"
+	"github.com/Richard87/goallery/pkg/handlers/images"
+	"github.com/Richard87/goallery/pkg/inmemorydb"
+	"github.com/Richard87/goallery/pkg/restapi"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -20,33 +19,34 @@ type AppConfig struct {
 	Photos    string `long:"photos-folder" description:"Directory to photos" default:"../photos" env:"PHOTOS_FOLDER"`
 	LogLevel  string `long:"log-level" description:"Log level" default:"info" env:"LOG_LEVEL"`
 	LogFormat string `long:"log-format" description:"Log format ('json' or 'text')" default:"text" env:"LOG_FORMAT"`
+	Port      int    `long:"port" description:"Port to listen on" default:"8000" env:"PORT"`
 }
 
 func main() {
 	ctx, cancel := createContextWithGracefulShutdown(time.Second * 15)
 	defer cancel()
 
-	config, server, api := ParseConfig()
-	defer server.Shutdown()
+	config := ParseConfig()
 
-	configureLogger(config, api)
+	configureLogger(config)
 	ctx = log.Logger.WithContext(ctx)
 
-	db, err := db.NewInMemoryDb(ctx, config.Photos)
+	db, err := inmemorydb.New(ctx, config.Photos)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load InMemoryDb")
 	}
 
-	server.ConfigureAPI()
-	handlers.ConfigureHandlers(db, api)
-	if err = api.Validate(); err != nil {
-		log.Fatal().Err(err).Msg("Some handlers have not been implemented")
+	err = restapi.New(ctx,
+		restapi.WithZerolog(log.Logger),
+		restapi.WithAuthApi(auth.New(db)),
+		restapi.WithImagesApi(images.New(db)),
+		restapi.WithHttpPort(config.Port),
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to configure server")
 	}
 
-	if err := server.Serve(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to start server")
-	}
-
+	<-ctx.Done()
 }
 
 func createContextWithGracefulShutdown(timeout time.Duration) (context.Context, context.CancelFunc) {
@@ -67,37 +67,19 @@ func createContextWithGracefulShutdown(timeout time.Duration) (context.Context, 
 
 	return ctx, cancelFunc
 }
-func ParseConfig() (*AppConfig, *restapi.Server, *gaollery.GoalleryAPI) {
-	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to load swagger spec")
-	}
+func ParseConfig() *AppConfig {
 	config := &AppConfig{}
-
-	api := gaollery.NewGoalleryAPI(swaggerSpec)
-	server := restapi.NewServer(api)
 
 	parser := flags.NewParser(config, flags.Default)
 	parser.ShortDescription = "Goallery"
 
-	_, err = parser.AddGroup("Server", "Server", server)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse server config")
-	}
-
 	if _, err := parser.Parse(); err != nil {
-		code := 1
-		if fe, ok := err.(*flags.Error); ok {
-			if fe.Type == flags.ErrHelp {
-				code = 0
-			}
-		}
-		os.Exit(code)
+		os.Exit(1)
 	}
 
-	return config, server, api
+	return config
 }
-func configureLogger(config *AppConfig, api *gaollery.GoalleryAPI) {
+func configureLogger(config *AppConfig) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.DurationFieldInteger = true
 	if config.LogFormat == "text" {
@@ -110,8 +92,4 @@ func configureLogger(config *AppConfig, api *gaollery.GoalleryAPI) {
 		log.Fatal().Err(err).Msg("Unable to parse log-level")
 	}
 	zerolog.SetGlobalLevel(level)
-
-	api.Logger = func(f string, args ...interface{}) {
-		log.Info().Msgf(f, args...)
-	}
 }

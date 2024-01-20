@@ -1,4 +1,4 @@
-package db
+package inmemorydb
 
 import (
 	"bytes"
@@ -41,6 +41,20 @@ var (
 	ErrNotImplemented = fmt.Errorf("%w: not implemented", ErrInMemoryDb)
 )
 
+func New(ctx context.Context, rootDir string) (*InMemoryDb, error) {
+	cwd, _ := os.Getwd()
+	db := &InMemoryDb{
+		rootDir: path.Join(cwd, rootDir),
+		fs:      os.DirFS(rootDir),
+		images:  make(map[string]Image),
+		logger:  log.Ctx(ctx).With().Str("pkg", "inmemorydb").Logger(),
+	}
+
+	go db.ScanPhotos(ctx)
+
+	return db, nil
+}
+
 func (db *InMemoryDb) GetImage(ctx context.Context, id string) (*models.Image, error) {
 
 	i, ok := db.images[id]
@@ -66,20 +80,6 @@ func (db *InMemoryDb) ListImages(_ context.Context) ([]*models.Image, error) {
 func (db *InMemoryDb) StoreImage(ctx context.Context, image fs.File) (*models.Image, error) {
 	// TODO implement me
 	return nil, ErrNotImplemented
-}
-
-func NewInMemoryDb(ctx context.Context, rootDir string) (*InMemoryDb, error) {
-	cwd, _ := os.Getwd()
-	db := &InMemoryDb{
-		rootDir: path.Join(cwd, rootDir),
-		fs:      os.DirFS(rootDir),
-		images:  make(map[string]Image),
-		logger:  log.Ctx(ctx).With().Str("module", "inmemorydb").Logger(),
-	}
-
-	go db.ScanPhotos(ctx)
-
-	return db, nil
 }
 
 func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
