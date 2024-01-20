@@ -14,8 +14,8 @@ generate-backend:
 	cd backend && go mod tidy
 
 generate-frontend:
-	rm -rf frontend/src/api
-	cd frontend && echo "TODO!!!" && exit 1
+	openapi-generator generate -i swagger.json -g typescript-fetch -o frontend/api --additional-properties=legacyDiscriminatorBehavior=false
+
 
 run-backend:
 	cd backend && PORT=5000 LOG_LEVEL=DEBUG go run .
