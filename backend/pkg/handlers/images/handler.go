@@ -36,6 +36,7 @@ func (h *Handler) GetImageByID(ctx context.Context, params images.GetImageByIDPa
 		})
 	}
 
+	image.Src = pointers.String("/api/v1/images/" + *image.ID + "/download")
 	return images.NewGetImageByIDOK().WithPayload(image)
 
 }
@@ -49,6 +50,10 @@ func (h *Handler) GetImages(ctx context.Context, params images.GetImagesParams) 
 			Status: pointers.Int32(500),
 			Title:  pointers.String("Internal Server Error"),
 		})
+	}
+
+	for key, image := range list {
+		list[key].Src = pointers.String("/api/v1/images/" + *image.ID + "/download")
 	}
 
 	return images.NewGetImagesOK().WithPayload(list)

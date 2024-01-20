@@ -193,6 +193,7 @@
       "type": "object",
       "required": [
         "id",
+        "src",
         "filename",
         "description",
         "mime",
@@ -206,6 +207,9 @@
       ],
       "properties": {
         "id": {
+          "type": "string"
+        },
+        "src": {
           "type": "string"
         },
         "filename": {

@@ -29,10 +29,6 @@ export const loader = async () => {
 
 export default function Index() {
     const {photos} = useLoaderData<{photos: Image[]}>()
-    const mappedPhotos = photos.map((image) => ({
-        src: `http://localhost:8000/api/v1/images/${image.id}/download`,
-        ...image
-    }))
     const [index, setIndex] = useState(-1)
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.8" }}>
@@ -40,7 +36,7 @@ export default function Index() {
       <PhotoAlbum
           layout="rows"
           targetRowHeight={150}
-          photos={mappedPhotos}
+          photos={photos}
           onClick={({ index }) => setIndex(index)}
           renderPhoto={({ imageProps: {style, ...imageProps} , photo }) => (
               <img
@@ -59,7 +55,7 @@ export default function Index() {
       />
 
       <Lightbox
-          slides={mappedPhotos}
+          slides={photos}
           open={index >= 0}
           index={index}
           close={() => setIndex(-1)}

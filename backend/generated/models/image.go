@@ -52,6 +52,10 @@ type Image struct {
 	// Required: true
 	Size *int64 `json:"size"`
 
+	// src
+	// Required: true
+	Src *string `json:"src"`
+
 	// tags
 	// Required: true
 	Tags []string `json:"tags"`
@@ -99,6 +103,10 @@ func (m *Image) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateSize(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSrc(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -201,6 +209,15 @@ func (m *Image) validateMime(formats strfmt.Registry) error {
 func (m *Image) validateSize(formats strfmt.Registry) error {
 
 	if err := validate.Required("size", "body", m.Size); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Image) validateSrc(formats strfmt.Registry) error {
+
+	if err := validate.Required("src", "body", m.Src); err != nil {
 		return err
 	}
 

@@ -192,6 +192,7 @@ func init() {
       "type": "object",
       "required": [
         "id",
+        "src",
         "filename",
         "description",
         "mime",
@@ -231,6 +232,9 @@ func init() {
         "size": {
           "type": "integer",
           "format": "int64"
+        },
+        "src": {
+          "type": "string"
         },
         "tags": {
           "type": "array",
@@ -493,6 +497,7 @@ func init() {
       "type": "object",
       "required": [
         "id",
+        "src",
         "filename",
         "description",
         "mime",
@@ -532,6 +537,9 @@ func init() {
         "size": {
           "type": "integer",
           "format": "int64"
+        },
+        "src": {
+          "type": "string"
         },
         "tags": {
           "type": "array",

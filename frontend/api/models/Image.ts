@@ -37,6 +37,12 @@ export interface Image {
      * @type {string}
      * @memberof Image
      */
+    src: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Image
+     */
     filename: string;
     /**
      * 
@@ -100,6 +106,7 @@ export interface Image {
 export function instanceOfImage(value: object): boolean {
     let isInstance = true;
     isInstance = isInstance && "id" in value;
+    isInstance = isInstance && "src" in value;
     isInstance = isInstance && "filename" in value;
     isInstance = isInstance && "description" in value;
     isInstance = isInstance && "tags" in value;
@@ -125,6 +132,7 @@ export function ImageFromJSONTyped(json: any, ignoreDiscriminator: boolean): Ima
     return {
         
         'id': json['id'],
+        'src': json['src'],
         'filename': json['filename'],
         'description': json['description'],
         'tags': json['tags'],
@@ -148,6 +156,7 @@ export function ImageToJSON(value?: Image | null): any {
     return {
         
         'id': value.id,
+        'src': value.src,
         'filename': value.filename,
         'description': value.description,
         'tags': value.tags,
