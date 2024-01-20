@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 
 	"github.com/Richard87/goallery/generated/restapi/gaollery"
+	"github.com/Richard87/goallery/generated/restapi/gaollery/auth"
 	"github.com/Richard87/goallery/generated/restapi/gaollery/images"
 )
 
@@ -38,14 +39,38 @@ func configureAPI(api *gaollery.GoalleryAPI) http.Handler {
 
 	api.JSONProducer = runtime.JSONProducer()
 
+	// Applies when the Authorization header is set with the Basic scheme
+	if api.BasicAuth == nil {
+		api.BasicAuth = func(user string, pass string) (interface{}, error) {
+			return nil, errors.NotImplemented("basic auth  (basic) has not yet been implemented")
+		}
+	}
+	// Applies when the "Authorization" header is set
+	if api.BearerAuth == nil {
+		api.BearerAuth = func(token string) (interface{}, error) {
+			return nil, errors.NotImplemented("api key auth (bearer) Authorization from header param [Authorization] has not yet been implemented")
+		}
+	}
+
+	// Set your custom authorizer if needed. Default one is security.Authorized()
+	// Expected interface runtime.Authorizer
+	//
+	// Example:
+	// api.APIAuthorizer = security.Authorized()
+
 	if api.ImagesGetImageByIDHandler == nil {
-		api.ImagesGetImageByIDHandler = images.GetImageByIDHandlerFunc(func(params images.GetImageByIDParams) middleware.Responder {
+		api.ImagesGetImageByIDHandler = images.GetImageByIDHandlerFunc(func(params images.GetImageByIDParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation images.GetImageByID has not yet been implemented")
 		})
 	}
 	if api.ImagesGetImagesHandler == nil {
-		api.ImagesGetImagesHandler = images.GetImagesHandlerFunc(func(params images.GetImagesParams) middleware.Responder {
+		api.ImagesGetImagesHandler = images.GetImagesHandlerFunc(func(params images.GetImagesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation images.GetImages has not yet been implemented")
+		})
+	}
+	if api.AuthGetTokenHandler == nil {
+		api.AuthGetTokenHandler = auth.GetTokenHandlerFunc(func(params auth.GetTokenParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation auth.GetToken has not yet been implemented")
 		})
 	}
 

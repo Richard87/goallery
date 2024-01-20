@@ -35,6 +35,53 @@ func init() {
   },
   "basePath": "/api/v1",
   "paths": {
+    "/auth/login": {
+      "post": {
+        "description": "Get JWT token",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get JWT token",
+        "operationId": "getToken",
+        "parameters": [
+          {
+            "description": "Credentials",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AuthRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/AuthResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          }
+        }
+      }
+    },
     "/images": {
       "get": {
         "description": "Get all images",
@@ -97,6 +144,32 @@ func init() {
     }
   },
   "definitions": {
+    "AuthRequest": {
+      "type": "object",
+      "required": [
+        "username",
+        "password"
+      ],
+      "properties": {
+        "password": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      }
+    },
+    "AuthResponse": {
+      "type": "object",
+      "required": [
+        "token"
+      ],
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      }
+    },
     "Image": {
       "type": "object",
       "required": [
@@ -190,7 +263,23 @@ func init() {
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "basic": {
+      "type": "basic"
+    },
+    "bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "basic": [],
+      "bearer": []
+    }
+  ]
 }`))
 	FlatSwaggerJSON = json.RawMessage([]byte(`{
   "consumes": [
@@ -210,6 +299,53 @@ func init() {
   },
   "basePath": "/api/v1",
   "paths": {
+    "/auth/login": {
+      "post": {
+        "description": "Get JWT token",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get JWT token",
+        "operationId": "getToken",
+        "parameters": [
+          {
+            "description": "Credentials",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AuthRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/AuthResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          }
+        }
+      }
+    },
     "/images": {
       "get": {
         "description": "Get all images",
@@ -272,6 +408,32 @@ func init() {
     }
   },
   "definitions": {
+    "AuthRequest": {
+      "type": "object",
+      "required": [
+        "username",
+        "password"
+      ],
+      "properties": {
+        "password": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      }
+    },
+    "AuthResponse": {
+      "type": "object",
+      "required": [
+        "token"
+      ],
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      }
+    },
     "Image": {
       "type": "object",
       "required": [
@@ -365,6 +527,22 @@ func init() {
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "basic": {
+      "type": "basic"
+    },
+    "bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "basic": [],
+      "bearer": []
+    }
+  ]
 }`))
 }

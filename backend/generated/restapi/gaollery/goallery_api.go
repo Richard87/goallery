@@ -19,6 +19,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
+	"github.com/Richard87/goallery/generated/restapi/gaollery/auth"
 	"github.com/Richard87/goallery/generated/restapi/gaollery/images"
 )
 
@@ -44,12 +45,26 @@ func NewGoalleryAPI(spec *loads.Document) *GoalleryAPI {
 
 		JSONProducer: runtime.JSONProducer(),
 
-		ImagesGetImageByIDHandler: images.GetImageByIDHandlerFunc(func(params images.GetImageByIDParams) middleware.Responder {
+		ImagesGetImageByIDHandler: images.GetImageByIDHandlerFunc(func(params images.GetImageByIDParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation images.GetImageByID has not yet been implemented")
 		}),
-		ImagesGetImagesHandler: images.GetImagesHandlerFunc(func(params images.GetImagesParams) middleware.Responder {
+		ImagesGetImagesHandler: images.GetImagesHandlerFunc(func(params images.GetImagesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation images.GetImages has not yet been implemented")
 		}),
+		AuthGetTokenHandler: auth.GetTokenHandlerFunc(func(params auth.GetTokenParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation auth.GetToken has not yet been implemented")
+		}),
+
+		// Applies when the Authorization header is set with the Basic scheme
+		BasicAuth: func(user string, pass string) (interface{}, error) {
+			return nil, errors.NotImplemented("basic auth  (basic) has not yet been implemented")
+		},
+		// Applies when the "Authorization" header is set
+		BearerAuth: func(token string) (interface{}, error) {
+			return nil, errors.NotImplemented("api key auth (bearer) Authorization from header param [Authorization] has not yet been implemented")
+		},
+		// default authorizer is authorized meaning no requests are blocked
+		APIAuthorizer: security.Authorized(),
 	}
 }
 
@@ -86,10 +101,23 @@ type GoalleryAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
+	// BasicAuth registers a function that takes username and password and returns a principal
+	// it performs authentication with basic auth
+	BasicAuth func(string, string) (interface{}, error)
+
+	// BearerAuth registers a function that takes a token and returns a principal
+	// it performs authentication based on an api key Authorization provided in the header
+	BearerAuth func(string) (interface{}, error)
+
+	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
+	APIAuthorizer runtime.Authorizer
+
 	// ImagesGetImageByIDHandler sets the operation handler for the get image by Id operation
 	ImagesGetImageByIDHandler images.GetImageByIDHandler
 	// ImagesGetImagesHandler sets the operation handler for the get images operation
 	ImagesGetImagesHandler images.GetImagesHandler
+	// AuthGetTokenHandler sets the operation handler for the get token operation
+	AuthGetTokenHandler auth.GetTokenHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -167,11 +195,21 @@ func (o *GoalleryAPI) Validate() error {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
+	if o.BasicAuth == nil {
+		unregistered = append(unregistered, "BasicAuth")
+	}
+	if o.BearerAuth == nil {
+		unregistered = append(unregistered, "AuthorizationAuth")
+	}
+
 	if o.ImagesGetImageByIDHandler == nil {
 		unregistered = append(unregistered, "images.GetImageByIDHandler")
 	}
 	if o.ImagesGetImagesHandler == nil {
 		unregistered = append(unregistered, "images.GetImagesHandler")
+	}
+	if o.AuthGetTokenHandler == nil {
+		unregistered = append(unregistered, "auth.GetTokenHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -188,12 +226,24 @@ func (o *GoalleryAPI) ServeErrorFor(operationID string) func(http.ResponseWriter
 
 // AuthenticatorsFor gets the authenticators for the specified security schemes
 func (o *GoalleryAPI) AuthenticatorsFor(schemes map[string]spec.SecurityScheme) map[string]runtime.Authenticator {
-	return nil
+	result := make(map[string]runtime.Authenticator)
+	for name := range schemes {
+		switch name {
+		case "basic":
+			result[name] = o.BasicAuthenticator(o.BasicAuth)
+
+		case "bearer":
+			scheme := schemes[name]
+			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.BearerAuth)
+
+		}
+	}
+	return result
 }
 
 // Authorizer returns the registered authorizer
 func (o *GoalleryAPI) Authorizer() runtime.Authorizer {
-	return nil
+	return o.APIAuthorizer
 }
 
 // ConsumersFor gets the consumers for the specified media types.
@@ -269,6 +319,10 @@ func (o *GoalleryAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/images"] = images.NewGetImages(o.context, o.ImagesGetImagesHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/auth/login"] = auth.NewGetToken(o.context, o.AuthGetTokenHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

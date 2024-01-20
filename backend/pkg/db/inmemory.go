@@ -20,6 +20,7 @@ import (
 	"github.com/Richard87/goallery/internal/pointers"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/nfnt/resize"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -27,13 +28,18 @@ type InMemoryDb struct {
 	rootDir string
 	fs      fs.FS
 	images  map[string]Image
+	logger  zerolog.Logger
 }
 type Image struct {
 	models.Image
 	path string
 }
 
-var ErrImageNotFound = fmt.Errorf("image not found")
+var (
+	ErrInMemoryDb     = fmt.Errorf("inmemorydb error")
+	ErrImageNotFound  = fmt.Errorf("%w: image not found", ErrInMemoryDb)
+	ErrNotImplemented = fmt.Errorf("%w: not implemented", ErrInMemoryDb)
+)
 
 func (db *InMemoryDb) GetImage(ctx context.Context, id string) (*models.Image, error) {
 
@@ -59,7 +65,7 @@ func (db *InMemoryDb) ListImages(_ context.Context) ([]*models.Image, error) {
 
 func (db *InMemoryDb) StoreImage(ctx context.Context, image fs.File) (*models.Image, error) {
 	// TODO implement me
-	panic("implement me")
+	return nil, ErrNotImplemented
 }
 
 func NewInMemoryDb(ctx context.Context, rootDir string) (*InMemoryDb, error) {
@@ -68,11 +74,19 @@ func NewInMemoryDb(ctx context.Context, rootDir string) (*InMemoryDb, error) {
 		rootDir: path.Join(cwd, rootDir),
 		fs:      os.DirFS(rootDir),
 		images:  make(map[string]Image),
+		logger:  log.Ctx(ctx).With().Str("module", "inmemorydb").Logger(),
 	}
+
+	go db.ScanPhotos(ctx)
+
+	return db, nil
+}
+
+func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
 
 	start := time.Now()
 
-	log.Ctx(ctx).Info().Str("path", db.rootDir).Msg("Scanning directory...")
+	db.logger.Info().Str("path", db.rootDir).Msg("Scanning directory...")
 
 	err := filepath.Walk(db.rootDir, func(path string, info os.FileInfo, err error) error {
 		select {
@@ -144,17 +158,17 @@ func NewInMemoryDb(ctx context.Context, rootDir string) (*InMemoryDb, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to walk directory: %w", err)
+		db.logger.Error().Err(err).Msg("Failed to walk directory")
+		return
 	}
 
-	log.Ctx(ctx).Info().
+	db.logger.Info().
 		Int("images", len(db.images)).
 		Dur("ellapsed", time.Now().Sub(start)).
-		Str("path", rootDir).
+		Str("path", db.rootDir).
 		Msg("InMemoryDb loaded")
 
 	if len(db.images) == 0 {
-		log.Ctx(ctx).Warn().Msg("No images found")
+		db.logger.Warn().Msg("No images found")
 	}
-	return db, nil
 }

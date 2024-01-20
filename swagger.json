@@ -10,6 +10,54 @@
   },
   "basePath": "/api/v1",
   "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Get JWT token",
+        "description": "Get JWT token",
+        "operationId": "getToken",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Credentials",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AuthRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/AuthResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ProblemDetails"
+            }
+          }
+        }
+      }
+    },
+
     "/images": {
       "get": {
         "tags": [
@@ -72,6 +120,34 @@
     }
   },
   "definitions": {
+    "AuthResponse": {
+      "type": "object",
+      "required": [
+        "token"
+      ],
+        "properties": {
+            "token": {
+            "type": "string"
+            }
+        }
+    },
+    "AuthRequest": {
+      "type": "object",
+      "required": [
+        "username",
+        "password"
+      ],
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+
+
     "ImageList": {
       "type": "array",
       "items": {
