@@ -69,6 +69,10 @@ func New(ctx context.Context, options ...OptionFunc) error {
 	}
 
 	api.UseSwaggerUI()
+	if err := api.Validate(); err != nil {
+		return fmt.Errorf("%w: %w", ErrFailedToInitialiseRestApi, err)
+	}
+
 	h = api.Serve(config.Config.InnerMiddleware)
 
 	srv := &http.Server{
@@ -77,7 +81,7 @@ func New(ctx context.Context, options ...OptionFunc) error {
 	}
 
 	go func() {
-		log.Info().Str("pkg", "restapi").Msgf("Starting to serve, access server on http://localhost:%d", config.Port)
+		log.Info().Str("pkg", "restapi").Msgf("Starting to serve, access server on http://localhost:%d/api/v1/docs", config.Port)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal().Str("pkg", "restapi").Err(err).Msg("Failed to listen")
 		}
@@ -86,9 +90,12 @@ func New(ctx context.Context, options ...OptionFunc) error {
 	go func() {
 		<-ctx.Done()
 
-		ctx, _ = context.WithTimeout(ctx, 15*time.Second)
-		err = srv.Shutdown(ctx)
-		log.Error().Str("pkg", "restapi").Err(err).Msg("Failed to shutdown gracefully")
+		ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		defer cancel()
+
+		if err = srv.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error().Str("pkg", "restapi").Err(err).Msg("Failed to shutdown gracefully")
+		}
 	}()
 
 	return nil
