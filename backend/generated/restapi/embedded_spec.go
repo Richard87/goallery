@@ -277,9 +277,6 @@ func init() {
     }
   },
   "securityDefinitions": {
-    "basic": {
-      "type": "basic"
-    },
     "bearer": {
       "type": "apiKey",
       "name": "Authorization",
@@ -288,7 +285,6 @@ func init() {
   },
   "security": [
     {
-      "basic": [],
       "bearer": []
     }
   ]
@@ -553,9 +549,6 @@ func init() {
     }
   },
   "securityDefinitions": {
-    "basic": {
-      "type": "basic"
-    },
     "bearer": {
       "type": "apiKey",
       "name": "Authorization",
@@ -564,7 +557,6 @@ func init() {
   },
   "security": [
     {
-      "basic": [],
       "bearer": []
     }
   ]

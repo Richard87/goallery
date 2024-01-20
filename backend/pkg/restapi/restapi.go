@@ -63,10 +63,13 @@ func New(ctx context.Context, options ...OptionFunc) error {
 		}
 	}
 
-	h, err := restapi.Handler(config.Config)
+	h, api, err := restapi.HandlerAPI(config.Config)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrFailedToInitialiseRestApi, err)
 	}
+
+	api.UseSwaggerUI()
+	h = api.Serve(config.Config.InnerMiddleware)
 
 	srv := &http.Server{
 		Addr:    ":" + strconv.Itoa(config.Port),

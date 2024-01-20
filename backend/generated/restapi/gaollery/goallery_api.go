@@ -56,10 +56,6 @@ func NewGoalleryAPI(spec *loads.Document) *GoalleryAPI {
 			return middleware.NotImplemented("operation auth.GetToken has not yet been implemented")
 		}),
 
-		// Applies when the Authorization header is set with the Basic scheme
-		BasicAuth: func(user string, pass string) (*models.User, error) {
-			return nil, errors.NotImplemented("basic auth  (basic) has not yet been implemented")
-		},
 		// Applies when the "Authorization" header is set
 		BearerAuth: func(token string) (*models.User, error) {
 			return nil, errors.NotImplemented("api key auth (bearer) Authorization from header param [Authorization] has not yet been implemented")
@@ -101,10 +97,6 @@ type GoalleryAPI struct {
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
-
-	// BasicAuth registers a function that takes username and password and returns a principal
-	// it performs authentication with basic auth
-	BasicAuth func(string, string) (*models.User, error)
 
 	// BearerAuth registers a function that takes a token and returns a principal
 	// it performs authentication based on an api key Authorization provided in the header
@@ -196,9 +188,6 @@ func (o *GoalleryAPI) Validate() error {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
-	if o.BasicAuth == nil {
-		unregistered = append(unregistered, "BasicAuth")
-	}
 	if o.BearerAuth == nil {
 		unregistered = append(unregistered, "AuthorizationAuth")
 	}
@@ -230,11 +219,6 @@ func (o *GoalleryAPI) AuthenticatorsFor(schemes map[string]spec.SecurityScheme) 
 	result := make(map[string]runtime.Authenticator)
 	for name := range schemes {
 		switch name {
-		case "basic":
-			result[name] = o.BasicAuthenticator(func(username, password string) (interface{}, error) {
-				return o.BasicAuth(username, password)
-			})
-
 		case "bearer":
 			scheme := schemes[name]
 			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, func(token string) (interface{}, error) {

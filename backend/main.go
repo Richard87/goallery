@@ -6,6 +6,8 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/Richard87/goallery/generated/models"
+	"github.com/Richard87/goallery/internal/pointers"
 	"github.com/Richard87/goallery/pkg/handlers/auth"
 	"github.com/Richard87/goallery/pkg/handlers/images"
 	"github.com/Richard87/goallery/pkg/inmemorydb"
@@ -41,12 +43,27 @@ func main() {
 		restapi.WithAuthApi(auth.New(db)),
 		restapi.WithImagesApi(images.New(db)),
 		restapi.WithHttpPort(config.Port),
+		WithTodoAuth(),
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to configure server")
 	}
 
 	<-ctx.Done()
+}
+
+func WithTodoAuth() restapi.OptionFunc {
+	return func(config *restapi.Config) error {
+		config.AuthBearer = func(token string) (*models.User, error) {
+			return &models.User{
+				ID:       pointers.String("1"),
+				Password: pointers.String("password"),
+				Token:    &token,
+				Username: pointers.String("todo"),
+			}, nil
+		}
+		return nil
+	}
 }
 
 func createContextWithGracefulShutdown(timeout time.Duration) (context.Context, context.CancelFunc) {

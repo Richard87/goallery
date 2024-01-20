@@ -56,9 +56,6 @@ type Config struct {
 	// and the principal was stored in the context in the "AuthKey" context value.
 	Authorizer func(*http.Request) error
 
-	// AuthBasic for basic authentication
-	AuthBasic func(user string, pass string) (*models.User, error)
-
 	// AuthBearer Applies when the "Authorization" header is set
 	AuthBearer func(token string) (*models.User, error)
 
@@ -108,13 +105,6 @@ func HandlerAPI(c Config) (http.Handler, *gaollery.GoalleryAPI, error) {
 		api.JSONConsumer = runtime.JSONConsumer()
 	}
 	api.JSONProducer = runtime.JSONProducer()
-	api.BasicAuth = func(user string, pass string) (*models.User, error) {
-		if c.AuthBasic == nil {
-			panic("you specified a custom principal type, but did not provide the authenticator to provide this")
-		}
-		return c.AuthBasic(user, pass)
-	}
-
 	api.BearerAuth = func(token string) (*models.User, error) {
 		if c.AuthBearer == nil {
 			panic("you specified a custom principal type, but did not provide the authenticator to provide this")
