@@ -109,6 +109,29 @@
     }
   },
   "definitions": {
+    "User": {
+      "type": "object",
+      "required": [
+        "id",
+        "username",
+        "password",
+        "token"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      }
+    },
     "AuthResponse": {
       "type": "object",
       "required": [

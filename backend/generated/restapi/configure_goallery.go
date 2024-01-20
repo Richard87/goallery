@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/runtime/security"
 
+	"github.com/Richard87/goallery/generated/models"
 	"github.com/Richard87/goallery/generated/restapi/gaollery"
 	"github.com/Richard87/goallery/generated/restapi/gaollery/auth"
 	"github.com/Richard87/goallery/generated/restapi/gaollery/images"
@@ -56,10 +57,10 @@ type Config struct {
 	Authorizer func(*http.Request) error
 
 	// AuthBasic for basic authentication
-	AuthBasic func(user string, pass string) (interface{}, error)
+	AuthBasic func(user string, pass string) (*models.User, error)
 
 	// AuthBearer Applies when the "Authorization" header is set
-	AuthBearer func(token string) (interface{}, error)
+	AuthBearer func(token string) (*models.User, error)
 
 	// Authenticator to use for all APIKey authentication
 	APIKeyAuthenticator func(string, string, security.TokenAuthentication) runtime.Authenticator
@@ -107,27 +108,27 @@ func HandlerAPI(c Config) (http.Handler, *gaollery.GoalleryAPI, error) {
 		api.JSONConsumer = runtime.JSONConsumer()
 	}
 	api.JSONProducer = runtime.JSONProducer()
-	api.BasicAuth = func(user string, pass string) (interface{}, error) {
+	api.BasicAuth = func(user string, pass string) (*models.User, error) {
 		if c.AuthBasic == nil {
-			return "", nil
+			panic("you specified a custom principal type, but did not provide the authenticator to provide this")
 		}
 		return c.AuthBasic(user, pass)
 	}
 
-	api.BearerAuth = func(token string) (interface{}, error) {
+	api.BearerAuth = func(token string) (*models.User, error) {
 		if c.AuthBearer == nil {
-			return token, nil
+			panic("you specified a custom principal type, but did not provide the authenticator to provide this")
 		}
 		return c.AuthBearer(token)
 	}
 
 	api.APIAuthorizer = authorizer(c.Authorizer)
-	api.ImagesGetImageByIDHandler = images.GetImageByIDHandlerFunc(func(params images.GetImageByIDParams, principal interface{}) middleware.Responder {
+	api.ImagesGetImageByIDHandler = images.GetImageByIDHandlerFunc(func(params images.GetImageByIDParams, principal *models.User) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.ImagesAPI.GetImageByID(ctx, params)
 	})
-	api.ImagesGetImagesHandler = images.GetImagesHandlerFunc(func(params images.GetImagesParams, principal interface{}) middleware.Responder {
+	api.ImagesGetImagesHandler = images.GetImagesHandlerFunc(func(params images.GetImagesParams, principal *models.User) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.ImagesAPI.GetImages(ctx, params)

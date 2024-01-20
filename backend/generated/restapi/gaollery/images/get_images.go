@@ -9,19 +9,21 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime/middleware"
+
+	"github.com/Richard87/goallery/generated/models"
 )
 
 // GetImagesHandlerFunc turns a function with the right signature into a get images handler
-type GetImagesHandlerFunc func(GetImagesParams, interface{}) middleware.Responder
+type GetImagesHandlerFunc func(GetImagesParams, *models.User) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn GetImagesHandlerFunc) Handle(params GetImagesParams, principal interface{}) middleware.Responder {
+func (fn GetImagesHandlerFunc) Handle(params GetImagesParams, principal *models.User) middleware.Responder {
 	return fn(params, principal)
 }
 
 // GetImagesHandler interface for that can handle valid get images params
 type GetImagesHandler interface {
-	Handle(GetImagesParams, interface{}) middleware.Responder
+	Handle(GetImagesParams, *models.User) middleware.Responder
 }
 
 // NewGetImages creates a new http.Handler for the get images operation
@@ -55,9 +57,9 @@ func (o *GetImages) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal *models.User
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc.(*models.User) // this is really a models.User, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params

@@ -9,7 +9,7 @@ build-backend: generate-backend
 generate-backend:
 	jq empty swagger.json
 	rm -rf backend/generated/*
-	cd backend && swagger generate server --template=stratoscale --target=./generated --spec=../swagger.json --exclude-main --api-package=gaollery
+	cd backend && swagger generate server --principal=models.User --template=stratoscale --target=./generated --spec=../swagger.json --exclude-main --api-package=gaollery
 	cd backend && go mod tidy
 
 generate-frontend:

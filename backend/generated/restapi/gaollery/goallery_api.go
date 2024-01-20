@@ -19,6 +19,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
+	"github.com/Richard87/goallery/generated/models"
 	"github.com/Richard87/goallery/generated/restapi/gaollery/auth"
 	"github.com/Richard87/goallery/generated/restapi/gaollery/images"
 )
@@ -45,10 +46,10 @@ func NewGoalleryAPI(spec *loads.Document) *GoalleryAPI {
 
 		JSONProducer: runtime.JSONProducer(),
 
-		ImagesGetImageByIDHandler: images.GetImageByIDHandlerFunc(func(params images.GetImageByIDParams, principal interface{}) middleware.Responder {
+		ImagesGetImageByIDHandler: images.GetImageByIDHandlerFunc(func(params images.GetImageByIDParams, principal *models.User) middleware.Responder {
 			return middleware.NotImplemented("operation images.GetImageByID has not yet been implemented")
 		}),
-		ImagesGetImagesHandler: images.GetImagesHandlerFunc(func(params images.GetImagesParams, principal interface{}) middleware.Responder {
+		ImagesGetImagesHandler: images.GetImagesHandlerFunc(func(params images.GetImagesParams, principal *models.User) middleware.Responder {
 			return middleware.NotImplemented("operation images.GetImages has not yet been implemented")
 		}),
 		AuthGetTokenHandler: auth.GetTokenHandlerFunc(func(params auth.GetTokenParams) middleware.Responder {
@@ -56,11 +57,11 @@ func NewGoalleryAPI(spec *loads.Document) *GoalleryAPI {
 		}),
 
 		// Applies when the Authorization header is set with the Basic scheme
-		BasicAuth: func(user string, pass string) (interface{}, error) {
+		BasicAuth: func(user string, pass string) (*models.User, error) {
 			return nil, errors.NotImplemented("basic auth  (basic) has not yet been implemented")
 		},
 		// Applies when the "Authorization" header is set
-		BearerAuth: func(token string) (interface{}, error) {
+		BearerAuth: func(token string) (*models.User, error) {
 			return nil, errors.NotImplemented("api key auth (bearer) Authorization from header param [Authorization] has not yet been implemented")
 		},
 		// default authorizer is authorized meaning no requests are blocked
@@ -103,11 +104,11 @@ type GoalleryAPI struct {
 
 	// BasicAuth registers a function that takes username and password and returns a principal
 	// it performs authentication with basic auth
-	BasicAuth func(string, string) (interface{}, error)
+	BasicAuth func(string, string) (*models.User, error)
 
 	// BearerAuth registers a function that takes a token and returns a principal
 	// it performs authentication based on an api key Authorization provided in the header
-	BearerAuth func(string) (interface{}, error)
+	BearerAuth func(string) (*models.User, error)
 
 	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
 	APIAuthorizer runtime.Authorizer
@@ -230,11 +231,15 @@ func (o *GoalleryAPI) AuthenticatorsFor(schemes map[string]spec.SecurityScheme) 
 	for name := range schemes {
 		switch name {
 		case "basic":
-			result[name] = o.BasicAuthenticator(o.BasicAuth)
+			result[name] = o.BasicAuthenticator(func(username, password string) (interface{}, error) {
+				return o.BasicAuth(username, password)
+			})
 
 		case "bearer":
 			scheme := schemes[name]
-			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.BearerAuth)
+			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, func(token string) (interface{}, error) {
+				return o.BearerAuth(token)
+			})
 
 		}
 	}

@@ -251,6 +251,29 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "User": {
+      "type": "object",
+      "required": [
+        "id",
+        "username",
+        "password",
+        "token"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      }
     }
   },
   "securityDefinitions": {
@@ -501,6 +524,29 @@ func init() {
           "format": "int32"
         },
         "title": {
+          "type": "string"
+        }
+      }
+    },
+    "User": {
+      "type": "object",
+      "required": [
+        "id",
+        "username",
+        "password",
+        "token"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "username": {
           "type": "string"
         }
       }
