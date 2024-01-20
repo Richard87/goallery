@@ -20,4 +20,4 @@ When adding a feature, start with updating the swagger.json with the new details
 You probably want to modify the `/definitions/ImageFeature/properties` with your new feature. Then create a new `ImageFeaturePlugin` to generate data.
 
 ## TO RUN
-`make run-frontend` and `make run-backend` to run the frontend and backend respectively. By default it currently looks for images in `./photos` in the root folder
+`make run` run the frontend and backend respectively. By default it currently looks for images in `./photos` in the root folder
