@@ -2,19 +2,21 @@ package main
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/Richard87/goallery/generated/models"
-	"github.com/Richard87/goallery/internal/pointers"
-	"github.com/Richard87/goallery/pkg/handlers/auth"
-	"github.com/Richard87/goallery/pkg/handlers/images"
+	"github.com/Richard87/goallery/api"
+	"github.com/Richard87/goallery/pkg/handler"
 	"github.com/Richard87/goallery/pkg/inmemorydb"
-	"github.com/Richard87/goallery/pkg/restapi"
+	gincommon "github.com/equinor/radix-common/pkg/gin"
+	"github.com/gin-gonic/gin"
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sys/unix"
 )
 
 type AppConfig struct {
@@ -25,7 +27,7 @@ type AppConfig struct {
 }
 
 func main() {
-	ctx, cancel := createContextWithGracefulShutdown(time.Second * 15)
+	ctx, cancel := signal.NotifyContext(context.Background(), unix.SIGTERM, unix.SIGINT)
 	defer cancel()
 
 	config := ParseConfig()
@@ -33,57 +35,33 @@ func main() {
 	configureLogger(config)
 	ctx = log.Logger.WithContext(ctx)
 
-	db, err := inmemorydb.New(ctx, config.Photos)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to load InMemoryDb")
-	}
+	db := inmemorydb.New(ctx, config.Photos)
 
-	err = restapi.New(ctx,
-		restapi.WithZerolog(log.Logger),
-		restapi.WithAuthApi(auth.New(db)),
-		restapi.WithImagesApi(images.New(db, log.Logger)),
-		restapi.WithHttpPort(config.Port),
-		WithTodoAuth(),
-	)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to configure server")
-	}
+	handler := handler.New(ctx, db)
+	router := initializeGin(ctx, handler)
+
+	go runServer(ctx, router)
 
 	<-ctx.Done()
+	log.Info().Msg("Exited.")
 }
 
-func WithTodoAuth() restapi.OptionFunc {
-	return func(config *restapi.Config) error {
-		config.AuthBearer = func(token string) (*models.User, error) {
-			return &models.User{
-				ID:       pointers.String("1"),
-				Password: pointers.String("password"),
-				Token:    &token,
-				Username: pointers.String("todo"),
-			}, nil
-		}
-		return nil
-	}
+func initializeGin(ctx context.Context, server api.StrictServerInterface) *gin.Engine {
+	gin.SetMode("release")
+	gin.DefaultWriter = log.Ctx(ctx)
+	gin.DefaultErrorWriter = log.Ctx(ctx)
+	router := gin.Default()
+	router.Use(
+		gincommon.SetZerologLogger(gincommon.ZerologLoggerWithRequestId),
+		gincommon.ZerologRequestLogger(),
+		gin.Recovery(),
+	)
+
+	handler := api.NewStrictHandler(server, []api.StrictMiddlewareFunc{})
+	api.RegisterHandlers(router, handler)
+	return router
 }
 
-func createContextWithGracefulShutdown(timeout time.Duration) (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithCancel(context.Background())
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		<-c
-		cancel()
-		time.Sleep(timeout)
-		os.Exit(2)
-	}()
-
-	cancelFunc := func() {
-		cancel()
-		signal.Stop(c)
-	}
-
-	return ctx, cancelFunc
-}
 func ParseConfig() *AppConfig {
 	config := &AppConfig{}
 
@@ -109,4 +87,34 @@ func configureLogger(config *AppConfig) {
 		log.Fatal().Err(err).Msg("Unable to parse log-level")
 	}
 	zerolog.SetGlobalLevel(level)
+}
+
+func runServer(ctx context.Context, handler http.Handler) {
+
+	// And we serve HTTP until the world ends.
+	s := &http.Server{
+		Handler: handler,
+		Addr:    "0.0.0.0:8080",
+	}
+	go func() {
+		log.Ctx(ctx).Info().Msg("Starting server on http://localhost:8080")
+
+		err := s.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Ctx(ctx).Fatal().Msg(err.Error())
+		}
+	}()
+
+	<-ctx.Done()
+
+	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+
+	err := s.Shutdown(shutdownCtx)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("Failed to close gracefully")
+		return
+	}
+
+	log.Ctx(ctx).Info().Msg("Server closed")
 }

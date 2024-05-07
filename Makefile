@@ -11,13 +11,14 @@ build-backend: generate-backend bootstrap
 build: build-frontend build-backend
 
 generate-backend:
-	jq empty swagger.json
-	rm -rf backend/generated/*
-	cd backend && swagger generate server --principal=models.User --template=stratoscale --target=./generated --spec=../swagger.json --exclude-main --api-package=gaollery
-	cd backend && go mod tidy
+	rm -rf backend/api/api.go
+#	cd backend && swagger generate server --principal=models.User --template=stratoscale --target=./generated --spec=../swagger.json --exclude-main --api-package=gaollery
+	#openapi-generator generate -i openapi.json -g go-gin-server	 -o backend --additional-properties=legacyDiscriminatorBehavior=false
+	cd backend && oapi-codegen --config=server.yaml ../openapi.json
+	 cd backend && go mod tidy
 
 generate-frontend:
-	openapi-generator generate -i swagger.json -g typescript-fetch -o frontend/api --additional-properties=legacyDiscriminatorBehavior=false
+	openapi-generator generate -i openapi.json -g typescript-fetch -o frontend/api --additional-properties=legacyDiscriminatorBehavior=false
 
 generate: generate-backend generate-frontend
 

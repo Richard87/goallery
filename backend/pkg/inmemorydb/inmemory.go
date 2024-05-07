@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Richard87/goallery/generated/models"
-	"github.com/Richard87/goallery/internal/pointers"
+	"github.com/Richard87/goallery/api"
+	pointers2 "github.com/equinor/radix-common/utils/pointers"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/nfnt/resize"
 	"github.com/rs/zerolog"
@@ -31,7 +31,7 @@ type InMemoryDb struct {
 	logger  zerolog.Logger
 }
 type Image struct {
-	models.Image
+	api.Image
 	path string
 }
 
@@ -41,7 +41,7 @@ var (
 	ErrNotImplemented = fmt.Errorf("%w: not implemented", ErrInMemoryDb)
 )
 
-func New(ctx context.Context, rootDir string) (*InMemoryDb, error) {
+func New(ctx context.Context, rootDir string) *InMemoryDb {
 	cwd, _ := os.Getwd()
 	db := &InMemoryDb{
 		rootDir: path.Join(cwd, rootDir),
@@ -52,35 +52,35 @@ func New(ctx context.Context, rootDir string) (*InMemoryDb, error) {
 
 	go db.ScanPhotos(ctx)
 
-	return db, nil
+	return db
 }
 
-func (db *InMemoryDb) GetImage(ctx context.Context, id string) (*models.Image, error) {
+func (db *InMemoryDb) GetImage(ctx context.Context, id string) (api.Image, error) {
 
 	i, ok := db.images[id]
 	if !ok {
-		return nil, ErrImageNotFound
+		return api.Image{}, ErrImageNotFound
 	}
 
-	return &i.Image, nil
+	return i.Image, nil
 }
 
-func (db *InMemoryDb) ListImages(_ context.Context) ([]*models.Image, error) {
-	res := make([]*models.Image, len(db.images))
+func (db *InMemoryDb) ListImages(_ context.Context) ([]api.Image, error) {
+	res := make([]api.Image, len(db.images))
 
 	x := 0
 	for _, v := range db.images {
 		v2 := v
-		res[x] = &v2.Image
+		res[x] = v2.Image
 		x++
 	}
 
 	return res, nil
 }
 
-func (db *InMemoryDb) StoreImage(ctx context.Context, image fs.File) (*models.Image, error) {
-	// TODO implement me
-	return nil, ErrNotImplemented
+func (db *InMemoryDb) StoreImage(ctx context.Context, image fs.File) (api.Image, error) {
+	panic("implement me")
+	return api.Image{}, ErrNotImplemented
 }
 
 func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
@@ -146,15 +146,15 @@ func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
 
 		id := strconv.Itoa(len(db.images) + 1)
 		db.images[id] = Image{
-			Image: models.Image{
-				ID:       &id,
-				Filename: pointers.String(info.Name()),
-				Mime:     &mime,
-				Width:    pointers.Int64(int64(i.Bounds().Max.X)),
-				Height:   pointers.Int64(int64(i.Bounds().Max.Y)),
-				Size:     &fileSize,
-				Features: &models.ImageFeature{
-					PluginBlurryimage: "data:image/png;base64," + base64.RawStdEncoding.EncodeToString(buf.Bytes()),
+			Image: api.Image{
+				Id:       id,
+				Filename: info.Name(),
+				Mime:     mime,
+				Width:    int64(i.Bounds().Max.X),
+				Height:   int64(i.Bounds().Max.Y),
+				Size:     fileSize,
+				Features: api.ImageFeature{
+					PluginBlurryimage: pointers2.Ptr("data:image/png;base64," + base64.RawStdEncoding.EncodeToString(buf.Bytes())),
 				},
 			},
 			path: localPath,
@@ -177,8 +177,14 @@ func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
 	}
 }
 
-func (db *InMemoryDb) OpenImage(id string) (fs.File, error) {
+func (db *InMemoryDb) OpenImage(ctx context.Context, id string) (fs.File, api.Image, error) {
 	i := db.images[id]
 
-	return db.fs.Open(i.path)
+	image, err := db.GetImage(ctx, id)
+	if err != nil {
+		return nil, api.Image{}, err
+	}
+
+	open, err := db.fs.Open(i.path)
+	return open, image, err
 }
