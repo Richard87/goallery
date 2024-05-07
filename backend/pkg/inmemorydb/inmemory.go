@@ -90,10 +90,8 @@ func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
 	db.logger.Info().Str("path", db.rootDir).Msg("Scanning directory...")
 
 	err := filepath.Walk(db.rootDir, func(path string, info os.FileInfo, err error) error {
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
 			return ctx.Err()
-		default:
 		}
 
 		if err != nil {
