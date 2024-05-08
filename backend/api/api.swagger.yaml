@@ -1,10 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/deepmap/oapi-codegen/HEAD/configuration-schema.json
 package: api
 generate:
-  strict-server: true
-  gin-server: true
-  models: true
   embedded-spec: true
-output: api/api.go
+output: api/swagger.go
 
 # ...
