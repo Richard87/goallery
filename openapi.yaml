@@ -1,0 +1,231 @@
+x-problem-details: &problem-details
+  description: Bad Request
+  content:
+    application/json:
+      schema:
+        "$ref": "#/components/schemas/ProblemDetails"
+
+openapi: 3.0.1
+info:
+  title: Goallery
+  description: This is the API Specification for Goallery.
+  version: 1.23.0
+servers:
+  - url: "/api/v1"
+security:
+  - bearer: []
+paths:
+  "/auth/login":
+    post:
+      tags:
+        - auth
+      summary: Get JWT token
+      description: Get JWT token
+      operationId: getToken
+      requestBody:
+        description: Credentials
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AuthRequest"
+        required: true
+      responses:
+        '400': *problem-details
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AuthResponse"
+      security: []
+      x-codegen-request-body-name: body
+  "/images":
+    get:
+      tags:
+        - images
+      summary: Get all images
+      description: Get all images
+      operationId: getImages
+      responses:
+        '400': *problem-details
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Image"
+
+  "/images/{id}":
+    get:
+      tags:
+        - images
+      summary: Get image by id
+      description: Get image by id
+      operationId: getImageById
+      parameters:
+        - name: id
+          in: path
+          description: Image id
+          required: true
+          schema:
+            type: string
+      responses:
+        '400': *problem-details
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Image"
+
+  "/images/{id}/download":
+    get:
+      tags:
+        - images
+      summary: Download image by id
+      description: Download image by id
+      operationId: downloadImageById
+      parameters:
+        - name: id
+          in: path
+          description: Image id
+          required: true
+          schema:
+            type: string
+      responses:
+        '400': *problem-details
+        '200':
+          description: OK
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            image/svg+xml:
+              schema:
+                type: string
+                format: binary
+      security: []
+components:
+  schemas:
+    User:
+      required:
+        - id
+        - password
+        - token
+        - username
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+        token:
+          type: string
+    AuthResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+    AuthRequest:
+      required:
+        - password
+        - username
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    ImageList:
+      type: array
+      items:
+        "$ref": "#/components/schemas/Image"
+    Image:
+      required:
+        - created
+        - description
+        - features
+        - filename
+        - height
+        - id
+        - mime
+        - size
+        - src
+        - tags
+        - updated
+        - width
+      type: object
+      properties:
+        id:
+          type: string
+        src:
+          type: string
+        filename:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        created:
+          type: string
+          format: date-time
+        updated:
+          type: string
+          format: date-time
+        mime:
+          type: string
+        size:
+          type: integer
+          format: int64
+        width:
+          type: integer
+          format: int64
+        height:
+          type: integer
+          format: int64
+        features:
+          "$ref": "#/components/schemas/ImageFeature"
+    ImageFeature:
+      type: object
+      properties:
+        plugin.blurryimage:
+          type: string
+    ProblemDetails:
+      required:
+        - status
+        - title
+      type: object
+      properties:
+        status:
+          type: integer
+          format: int32
+        title:
+          type: string
+        detail:
+          type: string
+  securitySchemes:
+    bearer:
+      type: apiKey
+      name: Authorization
+      in: header

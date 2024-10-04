@@ -1,45 +1,26 @@
-package handler
+package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Richard87/goallery/api"
-	"github.com/Richard87/goallery/pkg/inmemorydb"
-	"github.com/equinor/radix-common/utils/pointers"
 	"github.com/rs/zerolog/log"
 )
 
-type Handler struct {
-	db *inmemorydb.InMemoryDb
-}
-
-var _ api.StrictServerInterface = Handler{}
-
-func New(ctx context.Context, db *inmemorydb.InMemoryDb) Handler {
-	return Handler{
-		db: db,
-	}
-}
-
-func (h Handler) GetToken(ctx context.Context, request api.GetTokenRequestObject) (api.GetTokenResponseObject, error) {
-	return api.GetToken200JSONResponse{
-		Token: "tokenABC",
-	}, nil
-}
-
-func (h Handler) GetImages(ctx context.Context, request api.GetImagesRequestObject) (api.GetImagesResponseObject, error) {
+func (h Controller) GetImages(ctx context.Context, request api.GetImagesRequestObject) (api.GetImagesResponseObject, error) {
 	// TODO implement me
 
 	images, err := h.db.ListImages(ctx)
 	if err != nil {
-		return api.GetImages500JSONResponse{Detail: pointers.Ptr(err.Error()), Status: 500, Title: "Internal Server Error"}, nil
+		return nil, errors.New("not implemented")
 	}
 
 	return api.GetImages200JSONResponse(images), nil
 }
 
-func (h Handler) GetImageById(ctx context.Context, request api.GetImageByIdRequestObject) (api.GetImageByIdResponseObject, error) {
+func (h Controller) GetImageById(ctx context.Context, request api.GetImageByIdRequestObject) (api.GetImageByIdResponseObject, error) {
 
 	image, err := h.db.GetImage(ctx, request.Id)
 	if err != nil {
@@ -48,7 +29,7 @@ func (h Handler) GetImageById(ctx context.Context, request api.GetImageByIdReque
 	return api.GetImageById200JSONResponse(image), nil
 }
 
-func (h Handler) DownloadImageById(ctx context.Context, request api.DownloadImageByIdRequestObject) (api.DownloadImageByIdResponseObject, error) {
+func (h Controller) DownloadImageById(ctx context.Context, request api.DownloadImageByIdRequestObject) (api.DownloadImageByIdResponseObject, error) {
 	body, image, err := h.db.OpenImage(ctx, request.Id)
 	if err != nil {
 		log.Ctx(ctx).Err(err).Msg("failed to get image")
