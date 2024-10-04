@@ -2,10 +2,7 @@
 package: api
 generate:
   strict-server: true
-  # gin-server: true
   std-http-server: true
-  models: true
-  embedded-spec: true
 output: api/api.go
 output-options:
   nullable-type: true

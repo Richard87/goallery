@@ -6,70 +6,15 @@
 package api
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"path"
-	"strings"
-	"time"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 )
-
-const (
-	BearerScopes = "bearer.Scopes"
-)
-
-// AuthRequest defines model for AuthRequest.
-type AuthRequest struct {
-	Password string `json:"password"`
-	Username string `json:"username"`
-}
-
-// AuthResponse defines model for AuthResponse.
-type AuthResponse struct {
-	Test  []string `json:"test"`
-	Token string   `json:"token"`
-}
-
-// Image defines model for Image.
-type Image struct {
-	Created     time.Time    `json:"created"`
-	Description string       `json:"description"`
-	Features    ImageFeature `json:"features"`
-	Filename    string       `json:"filename"`
-	Height      int64        `json:"height"`
-	Id          string       `json:"id"`
-	Mime        string       `json:"mime"`
-	Size        int64        `json:"size"`
-	Src         string       `json:"src"`
-	Tags        []string     `json:"tags"`
-	Updated     time.Time    `json:"updated"`
-	Width       int64        `json:"width"`
-}
-
-// ImageFeature defines model for ImageFeature.
-type ImageFeature struct {
-	PluginBlurryimage *string `json:"plugin.blurryimage,omitempty"`
-}
-
-// ProblemDetails defines model for ProblemDetails.
-type ProblemDetails struct {
-	Detail *string `json:"detail,omitempty"`
-	Status int32   `json:"status"`
-	Title  string  `json:"title"`
-}
-
-// GetTokenJSONRequestBody defines body for GetToken for application/json ContentType.
-type GetTokenJSONRequestBody = AuthRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -653,96 +598,4 @@ func (sh *strictHandler) DownloadImageById(w http.ResponseWriter, r *http.Reques
 	} else if response != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
 	}
-}
-
-// Base64 encoded, gzipped, json marshaled Swagger object
-var swaggerSpec = []string{
-
-	"H4sIAAAAAAAC/9RWTXPbNhD9K5xtb6VEf2R64C1uphk1h2Yaz/Tg0QEiVuS6JIAsQDuMR/+9Q4A0RZGK",
-	"bDedJDcKWCwe3tt9qwfIdGW0QuUspA9gswIr4T9f1674Cz/WaF3707A2yI7Qbxph7b1m2X67xiCkYB2T",
-	"ymEXQ22RlahwZnMXA+PHmhglpDdDmr1D67g/pDe3mLk2Y8BijVYWp2BcB5EcVnYWUbcgmEXjf+t/UJ2G",
-	"F8LicMEcrlUl8hlAGaNw6MnZaq6EgxSkcLhwVCHEU3wSbcZkHGk1i3+LwtUckv/MuIUUfkoG5ZJOtsTj",
-	"+T0E+3NU4hElYiiQ8sKNQJJyv74aAJJymCO3wTQvdUVHklv6jE9MbTmbF03k9nmy1kY+j/d7kq54EsyD",
-	"yugVHku3J9Qe949MexY7zjqGwuu7tw4P6JEdrble42ljlnVOarkpa+aG+vKclvkk7XvWmxKrN+gElXaa",
-	"WPqNea2dcLU9pPHyYlZtR658gjN0Ofv4KRHtvZjVTK750FZ/QLlBwci+ahSkUKCQyBBDaALvI5rps+jk",
-	"6gvI0DtsYNcmJbXV4b17LQnXBdmIbOQKjF6/X0UfDGa0pcwniraao7dalCVys3zEnEK/BjHcIduQ6nx5",
-	"cbk8a6nQBpUwBClcLs+W5xCDEa7w70hE7Yqk1Dl5QzA6ONwY1Ft00R9/X0e9TbVyeUArGXavuw0ONn6l",
-	"ZePtSSuHyicUxpTdK5JbG9wnmMkpq9kfD564MbbfGCUqR6K0sK+s4xq91MHM/WMvzs6+MqxuUszg+vNd",
-	"y/yrr3jjQePM3HklZDRQNdQtpDfrGGxdVYKbGT2DAd5AWwttB3xaZFpijmrRCbrYaNksutpuv336xLe9",
-	"ZzbHI2UjyjLqwmbqZtXv/CeZHn375MSaevl3KtxIqhGHvVbdwnpPiOSB5O6Lavi4aNNEfj7My3HVrKR3",
-	"CBYVOuT2tsNcPjAk8fbX2slgfn593InxHlWHfrz+H7u0U/1HUHmszSmZE6nvVamFPKr3my7gi6L3Qd+r",
-	"8h57ktN2rMPj+N+QEn7sTYd8OHprMH/pWaNefNTe5b98qsqXHr/HjXnu2R9qAh0pzmnVj3MM/7tu1m31",
-	"WOS7vk5rLiGFRBhK7s5h58eYCYAXcviz+U2I+DcAAP//DXcvl/4OAAA=",
-}
-
-// GetSwagger returns the content of the embedded swagger specification file
-// or error if failed to decode
-func decodeSpec() ([]byte, error) {
-	zipped, err := base64.StdEncoding.DecodeString(strings.Join(swaggerSpec, ""))
-	if err != nil {
-		return nil, fmt.Errorf("error base64 decoding spec: %w", err)
-	}
-	zr, err := gzip.NewReader(bytes.NewReader(zipped))
-	if err != nil {
-		return nil, fmt.Errorf("error decompressing spec: %w", err)
-	}
-	var buf bytes.Buffer
-	_, err = buf.ReadFrom(zr)
-	if err != nil {
-		return nil, fmt.Errorf("error decompressing spec: %w", err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-var rawSpec = decodeSpecCached()
-
-// a naive cached of a decoded swagger spec
-func decodeSpecCached() func() ([]byte, error) {
-	data, err := decodeSpec()
-	return func() ([]byte, error) {
-		return data, err
-	}
-}
-
-// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
-func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
-	res := make(map[string]func() ([]byte, error))
-	if len(pathToFile) > 0 {
-		res[pathToFile] = rawSpec
-	}
-
-	return res
-}
-
-// GetSwagger returns the Swagger specification corresponding to the generated code
-// in this file. The external references of Swagger specification are resolved.
-// The logic of resolving external references is tightly connected to "import-mapping" feature.
-// Externally referenced files must be embedded in the corresponding golang packages.
-// Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
-	resolvePath := PathToRawSpec("")
-
-	loader := openapi3.NewLoader()
-	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
-	var specData []byte
-	specData, err = rawSpec()
-	if err != nil {
-		return
-	}
-	swagger, err = loader.LoadFromData(specData)
-	if err != nil {
-		return
-	}
-	return
 }

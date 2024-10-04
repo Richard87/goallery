@@ -9,6 +9,5 @@ import (
 func (h Controller) GetToken(ctx context.Context, request api.GetTokenRequestObject) (api.GetTokenResponseObject, error) {
 	return api.GetToken200JSONResponse{
 		Token: "tokenABC",
-		Test:  make([]string, 0),
 	}, nil
 }
