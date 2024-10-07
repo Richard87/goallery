@@ -5,6 +5,7 @@ go 1.23
 toolchain go1.23.2
 
 require (
+	github.com/a-h/templ v0.2.778
 	github.com/equinor/radix-common v1.9.2
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/gabriel-vasile/mimetype v1.4.2
@@ -14,7 +15,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/rs/zerolog v1.32.0
 	github.com/urfave/negroni v1.0.0
-	golang.org/x/sys v0.15.0
+	golang.org/x/sys v0.23.0
 )
 
 require (
@@ -29,6 +30,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
-	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/net v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

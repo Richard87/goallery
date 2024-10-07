@@ -14,6 +14,7 @@ generate-backend:
 	rm -rf backend/api/api.go
 #	cd backend && swagger generate server --principal=models.User --template=stratoscale --target=./generated --spec=../swagger.json --exclude-main --api-package=gaollery
 	#openapi-generator generate -i openapi.json -g go-gin-server	 -o backend --additional-properties=legacyDiscriminatorBehavior=false
+	cd backend && templ generate
 	cd backend && oapi-codegen --config=api/api.server.yaml ../openapi.yaml
 	cd backend && oapi-codegen --config=api/api.models.yaml ../openapi.yaml
 	cd backend && oapi-codegen --config=api/api.swagger.yaml ../openapi.yaml
@@ -24,7 +25,7 @@ generate-frontend:
 
 generate: generate-backend generate-frontend
 
-run-backend:
+run-backend: generate-backend
 	cd backend && LOG_LEVEL=DEBUG go run .
 
 run-frontend:

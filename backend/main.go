@@ -8,6 +8,8 @@ import (
 	"github.com/Richard87/goallery/pkg/controller"
 	"github.com/Richard87/goallery/pkg/inmemorydb"
 	"github.com/Richard87/goallery/pkg/router"
+	"github.com/Richard87/goallery/pkg/swagger"
+	"github.com/Richard87/goallery/pkg/templates"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sys/unix"
 )
@@ -20,9 +22,11 @@ func main() {
 	config.ConfigureLogger(cfg)
 
 	db := inmemorydb.New(ctx, cfg.Photos)
-	controller := controller.NewController(ctx, db)
-	r := router.NewRouter(controller)
 
-	err := router.RunServer(ctx, r, cfg)
-	log.Ctx(ctx).Err(err).Msg("Server closed")
+	api := controller.NewController(ctx, db)
+	frontend := templates.NewController()
+	swagger := swagger.NewController()
+
+	err := router.NewRouter(api, frontend, swagger).Serve(ctx, cfg.Port)
+	log.Ctx(ctx).Err(err).Msg("Router closed")
 }
