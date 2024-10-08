@@ -23,7 +23,7 @@ func main() {
 
 	db := inmemorydb.New(ctx, cfg.Photos)
 
-	api := controller.NewController(ctx, db)
+	api := controller.NewController(db)
 	frontend := templates.NewController()
 	swagger := swagger.NewController()
 

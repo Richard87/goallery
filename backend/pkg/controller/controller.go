@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/Richard87/goallery/api"
@@ -15,7 +14,7 @@ type Controller struct {
 
 var _ api.StrictServerInterface = Controller{}
 
-func NewController(ctx context.Context, db *inmemorydb.InMemoryDb) router.RouteMapper {
+func NewController(db *inmemorydb.InMemoryDb) router.RouteMapper {
 	controller := Controller{
 		db: db,
 	}
