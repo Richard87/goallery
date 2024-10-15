@@ -211,6 +211,26 @@ components:
       properties:
         plugin.blurryimage:
           type: string
+        plugin.faces:
+          type: array
+          items:
+            "$ref": "#/components/schemas/ImageFeatureFace"
+    ImageFeatureFace:
+      type: object
+      required:
+        - x1
+        - x2
+        - y1
+        - y2
+      properties:
+        x1:
+          type: integer
+        y1:
+          type: integer
+        x2:
+          type: integer
+        y2:
+          type: integer
     ProblemDetails:
       required:
         - status

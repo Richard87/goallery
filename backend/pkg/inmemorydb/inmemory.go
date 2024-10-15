@@ -3,11 +3,10 @@ package inmemorydb
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 	"image"
 	_ "image/jpeg"
-	"image/png"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -17,9 +16,7 @@ import (
 	"time"
 
 	"github.com/Richard87/goallery/api"
-	pointers2 "github.com/equinor/radix-common/utils/pointers"
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/nfnt/resize"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -41,7 +38,9 @@ var (
 	ErrNotImplemented = fmt.Errorf("%w: not implemented", ErrInMemoryDb)
 )
 
-func New(ctx context.Context, rootDir string) *InMemoryDb {
+type AddFeatureFunc func(context.Context, []byte, image.Image, *api.ImageFeature) error
+
+func New(ctx context.Context, rootDir string, features ...AddFeatureFunc) *InMemoryDb {
 	cwd, _ := os.Getwd()
 	db := &InMemoryDb{
 		rootDir: path.Join(cwd, rootDir),
@@ -50,7 +49,7 @@ func New(ctx context.Context, rootDir string) *InMemoryDb {
 		logger:  log.Ctx(ctx).With().Str("pkg", "inmemorydb").Logger(),
 	}
 
-	go db.ScanPhotos(ctx)
+	go db.ScanPhotos(ctx, features...)
 
 	return db
 }
@@ -83,7 +82,7 @@ func (db *InMemoryDb) StoreImage(ctx context.Context, image fs.File) (api.Image,
 	return api.Image{}, ErrNotImplemented
 }
 
-func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
+func (db *InMemoryDb) ScanPhotos(ctx context.Context, featureFuncs ...AddFeatureFunc) {
 
 	start := time.Now()
 
@@ -103,47 +102,44 @@ func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
 		}
 
 		localPath := strings.TrimPrefix(strings.Replace(path, db.rootDir, "", 1), "/")
+		logger := log.Ctx(ctx).With().Str("path", localPath).Logger()
 
 		mtype, err := mimetype.DetectFile(path)
 		if err != nil {
-			log.Ctx(ctx).Warn().Str("filepath", localPath).Err(err).Msg("Unable to get Mime from file")
+			logger.Warn().Err(err).Msg("Unable to get Mime from file")
 			return nil
 		}
 		mime := mtype.String()
 		fileSize := info.Size()
+		logger = logger.With().Str("mime", mtype.String()).Int64("size", fileSize).Logger()
 		if !strings.HasPrefix(mime, "image/") {
-			log.Ctx(ctx).Debug().Str("filepath", localPath).Str("mime", mime).Int64("size", fileSize).Msg("Skipping file")
-
+			logger.Debug().Msg("Skipping file")
 			return nil
 		}
-		log.Ctx(ctx).Debug().Str("filepath", localPath).Str("mime", mime).Int64("size", fileSize).Msg("Found image")
+		logger.Debug().Msg("Found image")
 
 		f, err := db.fs.Open(localPath)
 		if err != nil {
-			log.Ctx(ctx).Warn().Str("filepath", localPath).Err(err).Msg("Unable to load file")
+			logger.Warn().Err(err).Msg("Unable to open file")
 			return nil
 		}
 		defer f.Close()
 
-		i, _, err := image.Decode(f)
+		imageBytes, err := io.ReadAll(f)
 		if err != nil {
-			log.Ctx(ctx).Warn().
-				Str("filepath", localPath).
-				Str("mime", mime).
-				Err(err).
-				Msg("Unable to decode file")
+			logger.Warn().Err(err).Msg("Unable to read file")
 			return nil
 		}
+		r := bytes.NewReader(imageBytes)
 
-		var buf bytes.Buffer
-		newImage := resize.Resize(5, 5, i, resize.Lanczos3)
-		if err = png.Encode(&buf, newImage); err != nil {
-			log.Ctx(ctx).Warn().Str("filepath", localPath).Err(err).Msg("Unable to encode file")
+		i, _, err := image.Decode(r)
+		if err != nil {
+			logger.Warn().Err(err).Msg("Unable to decode file")
 			return nil
 		}
 
 		id := strconv.Itoa(len(db.images) + 1)
-		db.images[id] = Image{
+		image := Image{
 			Image: api.Image{
 				Id:       id,
 				Filename: info.Name(),
@@ -151,12 +147,19 @@ func (db *InMemoryDb) ScanPhotos(ctx context.Context) {
 				Width:    int64(i.Bounds().Max.X),
 				Height:   int64(i.Bounds().Max.Y),
 				Size:     fileSize,
-				Features: api.ImageFeature{
-					PluginBlurryimage: pointers2.Ptr("data:image/png;base64," + base64.RawStdEncoding.EncodeToString(buf.Bytes())),
-				},
+				Features: api.ImageFeature{},
 			},
 			path: localPath,
 		}
+		for _, fn := range featureFuncs {
+			featureCtx := logger.WithContext(ctx)
+			err := fn(featureCtx, imageBytes, i, &image.Features)
+			if err != nil {
+				logger.Warn().Err(err).Msg("Unable to add feature")
+				return err
+			}
+		}
+		db.images[id] = image
 		return nil
 	})
 	if err != nil {

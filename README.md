@@ -13,6 +13,9 @@ Goallery is a simple image gallery written in Go. It is designed to be used as a
 - [ ] Upload image(s)
 - [ ] Create albums
 - [ ] face recognition
+- [ ] Use chromem-go for storage
+- [ ] Use nats with leader election for high availability
+- [ ] use tensorflow with goface for face recognition (https://github.com/jdeng/goface)
 
 ## Contributing
 

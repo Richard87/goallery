@@ -40,7 +40,16 @@ type Image struct {
 
 // ImageFeature defines model for ImageFeature.
 type ImageFeature struct {
-	PluginBlurryimage *string `json:"plugin.blurryimage,omitempty"`
+	PluginBlurryimage *string             `json:"plugin.blurryimage,omitempty"`
+	PluginFaces       *[]ImageFeatureFace `json:"plugin.faces,omitempty"`
+}
+
+// ImageFeatureFace defines model for ImageFeatureFace.
+type ImageFeatureFace struct {
+	X1 int `json:"x1"`
+	X2 int `json:"x2"`
+	Y1 int `json:"y1"`
+	Y2 int `json:"y2"`
 }
 
 // ProblemDetails defines model for ProblemDetails.

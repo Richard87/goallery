@@ -9,10 +9,11 @@ import (
 )
 
 type AppConfig struct {
-	Photos    string `long:"photos-folder" description:"Directory to photos" default:"../photos" env:"PHOTOS_FOLDER"`
-	LogLevel  string `long:"log-level" description:"Log level" default:"info" env:"LOG_LEVEL"`
-	LogFormat string `long:"log-format" description:"Log format ('json' or 'text')" default:"text" env:"LOG_FORMAT"`
-	Port      int    `long:"port" description:"Port to listen on" default:"8000" env:"PORT"`
+	Photos               string `long:"photos-folder" description:"Directory to photos" default:"../photos" env:"PHOTOS_FOLDER"`
+	LogLevel             string `long:"log-level" description:"Log level" default:"info" env:"LOG_LEVEL"`
+	LogFormat            string `long:"log-format" description:"Log format ('json' or 'text')" default:"text" env:"LOG_FORMAT"`
+	Port                 int    `long:"port" description:"Port to listen on" default:"8000" env:"PORT"`
+	FaceScannerModelFile string `long:"facenet-model" description:"Path to facenet model file" default:"facenet.pb" env:"FACENET_MODEL"`
 }
 
 func ParseConfig() *AppConfig {
