@@ -7,6 +7,7 @@ import (
 	"github.com/Richard87/goallery/pkg/blurredimage"
 	"github.com/Richard87/goallery/pkg/config"
 	"github.com/Richard87/goallery/pkg/controller"
+	"github.com/Richard87/goallery/pkg/facescanner"
 	"github.com/Richard87/goallery/pkg/inmemorydb"
 	"github.com/Richard87/goallery/pkg/router"
 	"github.com/Richard87/goallery/pkg/swagger"
@@ -24,7 +25,7 @@ func main() {
 
 	db := inmemorydb.New(ctx, cfg.Photos,
 		blurredimage.NewBlurredImageFeature(),
-		// facescanner.NewFaceScannerFeature(ctx, cfg.FaceScannerModelFile),
+		facescanner.NewFaceScannerFeature(ctx, cfg.FaceScannerModelFile),
 	)
 
 	api := controller.NewController(db)

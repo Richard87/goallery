@@ -6,26 +6,32 @@ import (
 
 	"github.com/Richard87/goallery/api"
 	"github.com/Richard87/goallery/pkg/inmemorydb"
-	"github.com/jdeng/goface"
 	"github.com/rs/zerolog/log"
-	tf "github.com/tensorflow/tensorflow/tensorflow/go"
+	tf "github.com/wamuir/graft/tensorflow"
 )
 
 type FaceScanner struct {
-	fn *goface.Facenet
+	facenet  *Facenet
+	detector *MtcnnDetector
 }
 
 func NewFaceScannerFeature(ctx context.Context, modelFile string) inmemorydb.AddFeatureFunc {
-	fn, err := goface.NewFacenet(modelFile)
+
+	detector, err := NewMtcnnDetector("mtcnn.pb")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Cannot create face detector feature")
+	}
+
+	facenet, err := NewFacenet("models/saved_model/saved_model.pb")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Cannot create face scanner feature")
 	}
-
-	scanner := FaceScanner{fn: fn}
+	scanner := FaceScanner{facenet, detector}
 
 	go func() {
 		<-ctx.Done()
-		fn.Close()
+		facenet.Close()
+		detector.Close()
 	}()
 
 	return scanner.Scan
@@ -34,16 +40,12 @@ func NewFaceScannerFeature(ctx context.Context, modelFile string) inmemorydb.Add
 func (f *FaceScanner) Scan(ctx context.Context, imageBytes []byte, _ image.Image, feature *api.ImageFeature) error {
 
 	// detection
-	img, err := goface.TensorFromJpeg(imageBytes)
+	img, err := TensorFromJpeg(imageBytes)
 	if err != nil {
 		return err
 	}
 
-	det, err := goface.NewMtcnnDetector("mtcnn.pb")
-	if err != nil {
-		return err
-	}
-	bbox, err := det.DetectFaces(img) // [][]float32, i.e., [x1,y1,x2,y2],...
+	bbox, err := f.detector.DetectFaces(img) // [][]float32, i.e., [x1,y1,x2,y2],...
 	if err != nil {
 		return err
 	}
@@ -61,13 +63,13 @@ func (f *FaceScanner) Scan(ctx context.Context, imageBytes []byte, _ image.Image
 	feature.PluginFaces = &faces
 
 	var cropSize int32 = 160
-	ximgs, err := goface.CropResizeImage(img, bbox, []int32{cropSize, cropSize})
+	ximgs, err := CropResizeImage(img, bbox, []int32{cropSize, cropSize})
 	if err != nil {
 		return err
 	}
 	imgs := ximgs.Value().([][][][]float32)
 	for _, img := range imgs {
-		mean, std := goface.MeanStd(img)
+		mean, std := MeanStd(img)
 
 		timg, err := tf.NewTensor([][][][]float32{img})
 		if err != nil {
@@ -75,13 +77,13 @@ func (f *FaceScanner) Scan(ctx context.Context, imageBytes []byte, _ image.Image
 			continue
 		}
 
-		wimg, err := goface.PrewhitenImage(timg, mean, std)
+		wimg, err := PrewhitenImage(timg, mean, std)
 		if err != nil {
 			log.Ctx(ctx).Warn().Err(err).Msg("Could not prewhiten image")
 			continue
 		}
 
-		emb, err := f.fn.Embedding(wimg)
+		emb, err := f.facenet.Embedding(wimg)
 		if err != nil {
 			log.Ctx(ctx).Warn().Err(err).Msg("Failed to get Embeddings")
 			continue

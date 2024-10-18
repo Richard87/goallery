@@ -24,3 +24,25 @@ You probably want to modify the `/definitions/ImageFeature/properties` with your
 
 ## TO RUN
 `make run` run the frontend and backend respectively. By default it currently looks for images in `./photos` in the root folder
+
+## AI Models
+
+Download yunet from:
+```shell
+wget https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx
+pip install onnx2tf
+
+```
+
+## CGO on MacOs
+```shell
+
+export CGO_LDFLAGS="-L/usr/lib -L/usr/local/lib -L/opt/homebrew/lib"
+export CGO_CFLAGS="-I. -I/usr/include -I/usr/local/include -I/opt/homebrew/include"
+```
+
+##  Hugot
+
+Investigate if Hugot can help
+
+https://github.com/knights-analytics/hugot
