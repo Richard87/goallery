@@ -3,6 +3,7 @@
 Goallery is a simple image gallery written in Go. It is designed to be used as a standalone application with a wide array of backends and data-storage. 
 
 ## Features
+- [ ] Test out [Hugot](https://github.com/knights-analytics/hugot) for inference 
 - [ ] Create thumbnails (wip, make it into a `ImageFeaturePlugin`)
 - [ ] Scale images and set cache headers
 - [ ] Frontend Gallery
